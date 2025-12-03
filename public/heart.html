@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Hearts: A Gift For You</title>
+    <!-- Load Tailwind CSS for utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the dark, romantic theme */
+        body {
+            background-color: #110011; /* Very dark purple/black */
+            overflow: hidden; /* Prevent scrolling */
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #heartCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+        }
+        #messageContainer {
+            position: absolute;
+            z-index: 20;
+            text-align: center;
+            pointer-events: none; /* Allows mouse events to pass through to the canvas */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="heartCanvas"></canvas>
+
+    <div id="messageContainer" class="p-6">
+        <!-- Customizable Romantic Message -->
+        <h1 id="mainMessage" class="text-6xl sm:text-7xl lg:text-8xl font-extrabold text-pink-300 drop-shadow-lg leading-tight">
+            You are my greatest adventure.
+        </h1>
+        <p id="subMessage" class="mt-4 text-2xl sm:text-3xl font-light text-pink-100 drop-shadow-md">
+            (Move your mouse to create sparkles!)
+        </p>
+    </div>
+
+    <script>
+        // --- Customization Variables ---
+        const ROMANTIC_MESSAGE = "My Love, my life is brighter because of you.";
+        const SUB_MESSAGE = "Move your mouse/finger to draw sparkles across the screen!";
+        
+        // Update the visible messages
+        document.getElementById('mainMessage').textContent = ROMANTIC_MESSAGE;
+        document.getElementById('subMessage').textContent = SUB_MESSAGE;
+
+        // --- Canvas Setup ---
+        const canvas = document.getElementById('heartCanvas');
+        const ctx = canvas.getContext('2d');
+        let hearts = [];
+        let sparkles = [];
+        let mouseX = 0;
+        let mouseY = 0;
+        let lastHeartTime = 0;
+
+        // Set initial canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // Reposition the message container
+            const msg = document.getElementById('messageContainer');
+            msg.style.left = `${(window.innerWidth - msg.offsetWidth) / 2}px`;
+            msg.style.top = `${(window.innerHeight - msg.offsetHeight) / 2}px`;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- Heart Class ---
+        class Heart {
+            constructor(x, y, size, color, speed) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.color = color;
+                this.speed = speed;
+                this.opacity = 1;
+                this.waveOffset = Math.random() * Math.PI * 2; // For gentle side-to-side movement
+            }
+
+            // A function to draw a single heart shape
+            draw(ctx) {
+                ctx.save();
+                ctx.fillStyle = `rgba(${this.color}, ${this.opacity})`;
+                
+                // Create a glow effect
+                ctx.shadowBlur = this.size * 2;
+                ctx.shadowColor = `rgba(${this.color}, ${this.opacity * 0.8})`;
+
+                const halfSize = this.size / 2;
+                ctx.beginPath();
+                
+                // Heart shape drawing logic (simple approximation)
+                ctx.moveTo(this.x, this.y + halfSize);
+                ctx.bezierCurveTo(
+                    this.x + this.size, this.y - halfSize,
+                    this.x + this.size * 1.5, this.y,
+                    this.x, this.y - this.size * 0.8
+                );
+                ctx.bezierCurveTo(
+                    this.x - this.size * 1.5, this.y,
+                    this.x - this.size, this.y - halfSize,
+                    this.x, this.y + halfSize
+                );
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.restore();
+            }
+
+            update() {
+                // Rise up
+                this.y -= this.speed;
+                // Gentle side-to-side wave movement
+                this.x += Math.sin(this.waveOffset + this.y * 0.01) * 0.5; 
+                // Fade out as it rises
+                this.opacity -= 0.005; 
+            }
+        }
+
+        // --- Sparkle Class (for mouse trail) ---
+        class Sparkle {
+            constructor(x, y, radius, color) {
+                this.x = x + (Math.random() - 0.5) * 10;
+                this.y = y + (Math.random() - 0.5) * 10;
+                this.radius = radius * Math.random() * 0.5 + 1;
+                this.color = color;
+                this.opacity = 1;
+                this.velocity = {
+                    x: (Math.random() - 0.5) * 2,
+                    y: (Math.random() - 0.5) * 2
+                };
+                this.gravity = 0.05;
+                this.decay = 0.03;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            update() {
+                this.velocity.y += this.gravity;
+                this.x += this.velocity.x;
+                this.y += this.velocity.y;
+                this.opacity -= this.decay;
+            }
+        }
+
+
+        // --- Interaction Handlers ---
+
+        function handleMouseMove(event) {
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+            // Generate a burst of sparkles
+            for (let i = 0; i < 3; i++) {
+                const colors = ["255, 204, 255", "255, 102, 178", "255, 255, 255"];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                sparkles.push(new Sparkle(mouseX, mouseY, 5, `rgba(${color}, 1)`));
+            }
+        }
+
+        // Handle touch events for mobile interaction
+        function handleTouchMove(event) {
+            // Prevent scrolling on touch
+            event.preventDefault(); 
+            if (event.touches.length > 0) {
+                mouseX = event.touches[0].clientX;
+                mouseY = event.touches[0].clientY;
+                // Generate sparkles for touch
+                for (let i = 0; i < 3; i++) {
+                    const colors = ["255, 204, 255", "255, 102, 178", "255, 255, 255"];
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    sparkles.push(new Sparkle(mouseX, mouseY, 5, `rgba(${color}, 1)`));
+                }
+            }
+        }
+
+
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('touchmove', handleTouchMove);
+        canvas.addEventListener('touchstart', handleTouchMove); // Start generating on touch start
+
+
+        // --- Animation Loop ---
+        function animate(currentTime) {
+            requestAnimationFrame(animate);
+
+            // Clear the canvas, keeping a slight trail for a misty effect
+            ctx.fillStyle = 'rgba(17, 0, 17, 0.2)'; // Fills with dark color and some transparency
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // --- Hearts Logic ---
+            const timeSinceLastHeart = currentTime - lastHeartTime;
+            
+            // Generate a new heart every 100ms
+            if (timeSinceLastHeart > 100) {
+                const x = Math.random() * canvas.width;
+                const y = canvas.height + 20; // Start off-screen at the bottom
+                const size = Math.random() * 15 + 10;
+                const speed = Math.random() * 0.8 + 0.5;
+                // Use pink/red shades for the hearts
+                const colors = ["255, 105, 180", "255, 0, 100", "255, 192, 203", "255, 20, 147"];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                hearts.push(new Heart(x, y, size, color, speed));
+                lastHeartTime = currentTime;
+            }
+
+            // Update and draw hearts, filter out faded ones
+            hearts.forEach((heart, index) => {
+                heart.update();
+                heart.draw(ctx);
+                if (heart.opacity <= 0 || heart.y < -heart.size) {
+                    hearts.splice(index, 1);
+                }
+            });
+
+
+            // --- Sparkles Logic ---
+            // Update and draw sparkles, filter out faded ones
+            sparkles.forEach((sparkle, index) => {
+                sparkle.update();
+                sparkle.draw(ctx);
+                if (sparkle.opacity <= 0) {
+                    sparkles.splice(index, 1);
+                }
+            });
+        }
+
+        // Start the animation loop when the window loads
+        window.onload = function () {
+            animate(0);
+        }
+    </script>
+</body>
+</html>

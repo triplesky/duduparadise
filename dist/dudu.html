@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>英语大冒险 - 嘟嘟乐园</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Fredoka+One&display=swap" rel="stylesheet">
+    
+    <style>
+        /* 全局字体 */
+        body {
+            font-family: 'ZCOOL KuaiLe', cursive, sans-serif;
+            overflow-x: hidden;
+            background-color: #AEE2FF; /* 天空蓝 */
+        }
+        
+        /* 英文专用字体，更圆润 */
+        .font-english {
+            font-family: 'Fredoka One', cursive, sans-serif;
+        }
+
+        /* === 卡通风格核心 CSS (复用自首页) === */
+        .cartoon-card {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .cartoon-card:active {
+            transform: translate(4px, 4px) !important;
+            box-shadow: 0px 0px 0px 0px !important;
+        }
+
+        /* 标题文字描边 */
+        .cartoon-text-stroke {
+            -webkit-text-stroke: 2px #d97706; /* 橙色深描边 */
+            text-shadow: 3px 3px 0px rgba(0,0,0,0.1);
+        }
+        
+        .text-stroke-white {
+            -webkit-text-stroke: 2px #000;
+            paint-order: stroke fill;
+        }
+
+        /* 背景云朵动画 */
+        @keyframes floatCloud {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100vw); }
+        }
+        .cloud { position: absolute; opacity: 0.9; pointer-events: none; z-index: 0; filter: drop-shadow(0 4px 0 rgba(0,0,0,0.1)); }
+        .cloud-1 { top: 10%; left: -20%; animation: floatCloud 30s linear infinite; font-size: 5rem; }
+        .cloud-2 { top: 25%; left: -10%; animation: floatCloud 45s linear infinite; animation-delay: 5s; font-size: 3.5rem; }
+
+        /* 装饰动画 */
+        .spin-slow { animation: spin 10s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* 录音中的特效 */
+        .recording-pulse {
+            animation: recordPulse 1.5s infinite;
+        }
+        @keyframes recordPulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* 隐藏滚动条 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* 电视机屏幕扫描线效果 */
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.05) 50%,
+                rgba(0,0,0,0.05)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    boxShadow: {
+                        'cartoon-yellow': '6px 6px 0px 0px #d97706',
+                        'cartoon-indigo': '6px 6px 0px 0px #312e81',
+                        'cartoon-green': '6px 6px 0px 0px #14532d',
+                        'cartoon-pink': '6px 6px 0px 0px #be185d',
+                        'cartoon-blue': '6px 6px 0px 0px #1e40af',
+                        'cartoon-black': '6px 6px 0px 0px rgba(0,0,0,1)',
+                        'cartoon-none': '0px 0px 0px 0px',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen relative pb-safe select-none flex flex-col items-center">
+
+    <!-- 返回按钮 -->
+    <a href="index_nav.html" class="fixed top-4 left-4 z-50 bg-white border-4 border-black rounded-full w-14 h-14 md:w-16 md:h-16 flex items-center justify-center shadow-cartoon-black transition-transform active:translate-x-1 active:translate-y-1 active:shadow-none hover:-translate-y-1 cursor-pointer no-underline">
+        <span class="text-3xl">🏠</span>
+    </a>
+
+    <!-- 装饰背景 -->
+    <div class="cloud cloud-1">☁️</div>
+    <div class="cloud cloud-2">☁️</div>
+    
+    <div class="fixed top-[-40px] right-[-40px] w-32 h-32 md:w-48 md:h-48 bg-yellow-300 rounded-full border-4 border-yellow-500 z-0 spin-slow flex items-center justify-center opacity-90">
+        <div class="text-4xl md:text-5xl animate-pulse">☀️</div>
+    </div>
+
+    <!-- 主容器 -->
+    <main class="relative z-10 w-full max-w-4xl px-4 py-6 md:py-8 flex flex-col items-center">
+        
+        <!-- 标题 -->
+        <header class="text-center mb-6 relative">
+            <h1 class="text-5xl md:text-7xl text-yellow-400 cartoon-text-stroke font-black tracking-wider transform -rotate-2 drop-shadow-lg">
+                英语大冒险
+            </h1>
+            <div class="absolute -right-8 -bottom-2 bg-white px-3 py-1 rounded-full border-2 border-black transform rotate-6 shadow-sm">
+                <span class="text-blue-500 font-bold text-sm md:text-base">Speak Loud! 🗣️</span>
+            </div>
+        </header>
+
+        <!-- 游戏机/电视机主体 -->
+        <div class="w-full bg-orange-400 border-[6px] border-black rounded-[3rem] p-4 md:p-8 shadow-cartoon-black relative">
+            
+            <!-- 装饰螺丝钉 -->
+            <div class="absolute top-4 left-4 w-4 h-4 bg-black rounded-full opacity-20"></div>
+            <div class="absolute top-4 right-4 w-4 h-4 bg-black rounded-full opacity-20"></div>
+            <div class="absolute bottom-4 left-4 w-4 h-4 bg-black rounded-full opacity-20"></div>
+            <div class="absolute bottom-4 right-4 w-4 h-4 bg-black rounded-full opacity-20"></div>
+
+            <!-- 屏幕区域 -->
+            <div id="video-screen" class="bg-[#1a1a1a] border-4 border-black rounded-[2rem] overflow-hidden relative aspect-[4/3] md:aspect-video shadow-inner mb-6 flex flex-col">
+                <div class="scanlines absolute inset-0 z-10 opacity-30"></div>
+                
+                <!-- 屏幕顶部状态栏 -->
+                <div class="bg-black/40 p-2 flex justify-between items-center z-20 px-4">
+                    <span id="word-counter" class="text-green-400 font-mono text-sm md:text-lg">LEVEL 1-1</span>
+                    <div class="w-24 md:w-48 h-3 bg-gray-700 rounded-full overflow-hidden border border-gray-500">
+                        <div id="progress-bar" class="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-300" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- 屏幕中心内容 -->
+                <div class="flex-1 flex flex-col justify-center items-center relative z-20 p-4">
+                    <p id="word-on-screen" class="font-english text-6xl md:text-8xl lg:text-9xl text-white drop-shadow-[0_4px_0_rgba(0,0,0,1)] text-stroke-white transition-transform duration-300 cursor-pointer hover:scale-110 active:scale-95">
+                        Loading...
+                    </p>
+                    
+                    <div class="mt-4 md:mt-8 bg-white/10 backdrop-blur-sm rounded-xl p-4 w-full max-w-md border-2 border-white/20 text-center">
+                        <p id="current-translation" class="text-2xl md:text-3xl text-yellow-300 font-black mb-1 tracking-widest">加载中...</p>
+                        <p id="current-example" class="text-sm md:text-lg text-gray-300 italic font-english">"Wait a moment..."</p>
+                    </div>
+
+                    <!-- 状态提示 (浮动在屏幕中间) -->
+                    <div id="feedback-area" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full text-center pointer-events-none">
+                        <p id="recording-status" class="hidden">
+                            <span class="bg-red-600 text-white px-6 py-3 rounded-full text-xl font-bold animate-pulse border-2 border-white shadow-lg">
+                                🔴 正在录音...
+                            </span>
+                        </p>
+                        <p id="loading-status" class="hidden">
+                            <span class="bg-blue-600 text-white px-6 py-3 rounded-full text-xl font-bold animate-bounce border-2 border-white shadow-lg">
+                                🤖 评分中...
+                            </span>
+                        </p>
+                        <div id="evaluation-result" class="hidden bg-white border-4 border-black rounded-2xl p-4 inline-block shadow-[8px_8px_0_0_rgba(0,0,0,0.5)] transform rotate-2">
+                            <h3 id="score-text" class="text-4xl font-black mb-1"></h3>
+                            <p id="feedback-detail" class="text-gray-700 font-bold text-lg"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 控制台区域 -->
+            <div class="grid grid-cols-12 gap-4 items-center">
+                
+                <!-- 左侧：功能键 -->
+                <div class="col-span-3 md:col-span-3 flex flex-col gap-3 items-start justify-center pl-2 md:pl-6">
+                    <button id="refresh-btn" class="cartoon-card w-12 h-12 md:w-16 md:h-16 rounded-full bg-yellow-400 border-4 border-black shadow-cartoon-black flex items-center justify-center group" title="换一批词汇">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 md:w-8 md:h-8 text-black group-hover:rotate-180 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    </button>
+                    <button id="tts-only-btn" class="cartoon-card w-12 h-12 md:w-16 md:h-16 rounded-full bg-blue-400 border-4 border-black shadow-cartoon-black flex items-center justify-center group" title="听发音">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 md:w-8 md:h-8 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
+                    </button>
+                </div>
+
+                <!-- 中间：大大的录音按钮 -->
+                <div class="col-span-6 md:col-span-6 flex justify-center">
+                    <button id="pronounce-btn" class="cartoon-card relative w-24 h-24 md:w-32 md:h-32 bg-red-500 rounded-[2rem] border-[6px] border-black shadow-cartoon-black flex flex-col items-center justify-center active:bg-red-600 transition-colors">
+                        <div class="text-4xl md:text-5xl text-white drop-shadow-md">🎙️</div>
+                        <span class="text-white font-black text-xs md:text-sm mt-1">按住说话</span>
+                    </button>
+                </div>
+
+                <!-- 右侧：方向键 -->
+                <div class="col-span-3 md:col-span-3 flex justify-end gap-2 md:gap-4 pr-2 md:pr-6">
+                    <button id="prev-btn" class="cartoon-card bg-gray-200 w-14 h-12 md:w-20 md:h-16 rounded-xl border-4 border-black shadow-cartoon-black flex items-center justify-center active:bg-gray-300">
+                        <span class="text-2xl md:text-4xl font-black text-gray-700">◀</span>
+                    </button>
+                    <button id="next-btn" class="cartoon-card bg-green-400 w-14 h-12 md:w-20 md:h-16 rounded-xl border-4 border-black shadow-cartoon-black flex items-center justify-center active:bg-green-500">
+                         <span class="text-2xl md:text-4xl font-black text-white">▶</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 词汇糖果盒 -->
+        <div class="mt-8 w-full bg-white/60 backdrop-blur-sm border-4 border-white rounded-[2rem] p-4 md:p-6 shadow-lg">
+            <h2 class="text-xl md:text-2xl text-blue-500 font-black mb-4 text-center">🍬 词汇糖果盒</h2>
+            <div id="word-list" class="flex flex-wrap gap-3 justify-center max-h-40 overflow-y-auto no-scrollbar p-1">
+                <!-- 词汇由 JS 生成 -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 脚本逻辑 -->
+    <script>
+        // 完整的儿童高频词汇库 
+        const allKidsWords = [
+            // 水果 (Fruits)
+            { english: "Apple", chinese: "苹果", example: "The apple is red and sweet." },
+            { english: "Banana", chinese: "香蕉", example: "Monkeys love to eat bananas." },
+            { english: "Grape", chinese: "葡萄", example: "Grapes grow in bunches." },
+            { english: "Orange", chinese: "橙子", example: "The orange is round and juicy." },
+            { english: "Strawberry", chinese: "草莓", example: "I like sweet strawberries." },
+            { english: "Watermelon", chinese: "西瓜", example: "Watermelon is big and green." },
+            { english: "Lemon", chinese: "柠檬", example: "Lemon tastes very sour." },
+            { english: "Peach", chinese: "桃子", example: "A peach has soft fuzzy skin." },
+            { english: "Pear", chinese: "梨", example: "The pear is juicy and green." },
+            { english: "Blueberry", chinese: "蓝莓", example: "Blueberries are healthy and small." },
+
+            // 动物 (Animals)
+            { english: "Dog", chinese: "狗", example: "A dog can bark loudly." },
+            { english: "Cat", chinese: "猫", example: "The cat likes to sleep." },
+            { english: "Fish", chinese: "鱼", example: "The fish swims in the water." },
+            { english: "Elephant", chinese: "大象", example: "An elephant is very big." },
+            { english: "Lion", chinese: "狮子", example: "The lion is the king of the jungle." },
+            { english: "Rabbit", chinese: "兔子", example: "Rabbits jump and run fast." },
+            { english: "Bird", chinese: "鸟", example: "The bird sings a song." },
+            { english: "Monkey", chinese: "猴子", example: "Monkeys swing on the trees." },
+            { english: "Bear", chinese: "熊", example: "Bears sleep in winter." },
+            { english: "Tiger", chinese: "老虎", example: "A tiger has black stripes." },
+            { english: "Panda", chinese: "熊猫", example: "Pandas like to eat bamboo." },
+
+            // 食物 (Food)
+            { english: "Milk", chinese: "牛奶", example: "I drink milk for breakfast." },
+            { english: "Bread", chinese: "面包", example: "We eat bread with jam." },
+            { english: "Egg", chinese: "鸡蛋", example: "I cook an egg every morning." },
+            { english: "Rice", chinese: "米饭", example: "Rice is white and yummy." },
+            { english: "Noodles", chinese: "面条", example: "Slurp the long noodles." },
+            { english: "Pizza", chinese: "披萨", example: "Pizza has cheese and tomato sauce." },
+            { english: "Ice Cream", chinese: "冰淇淋", example: "Ice cream is cold and sweet." },
+            { english: "Cake", chinese: "蛋糕", example: "We eat cake for birthdays." },
+            { english: "Hamburger", chinese: "汉堡包", example: "Hamburger has meat and buns." },
+            
+            // 日常生活 (Daily Life)
+            { english: "House", chinese: "房子", example: "We live in a big house." },
+            { english: "Car", chinese: "汽车", example: "Dad drives a big car." },
+            { english: "Bus", chinese: "公交车", example: "We take the bus to school." },
+            { english: "Sun", chinese: "太阳", example: "The sun shines in the sky." },
+            { english: "Moon", chinese: "月亮", example: "The moon shines at night." },
+            { english: "Star", chinese: "星星", example: "Stars twinkle in the sky." },
+            { english: "Flower", chinese: "花", example: "Look at the pretty flower." },
+            { english: "Tree", chinese: "树", example: "The bird sits on the tall tree." },
+            { english: "Book", chinese: "书", example: "I read a fun book." },
+            { english: "Pen", chinese: "钢笔", example: "I write with a pen." },
+            { english: "Bag", chinese: "书包", example: "I put my books in my bag." },
+            { english: "Toy", chinese: "玩具", example: "I share my toy with my friend." },
+            { english: "Friend", chinese: "朋友", example: "My friend and I play together." },
+            { english: "Happy", chinese: "快乐", example: "I am happy today." }
+        ];
+
+        // --- 状态变量和 DOM 引用 ---
+        let kidsWords = [];
+        let currentWordIndex = 0;
+        let totalWords = 0;
+        const BATCH_SIZE = 10;
+        // 切换到 Lite 模型以减少过载
+        const LLM_MODEL = 'gemini-2.5-flash-lite-latest';
+        
+        // 安全获取 API Key
+        const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
+
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let recordingTimeout = null;
+
+        const wordOnScreen = document.getElementById('word-on-screen');
+        const currentTranslation = document.getElementById('current-translation');
+        const currentExample = document.getElementById('current-example');
+        const wordCounter = document.getElementById('word-counter');
+        const progressBar = document.getElementById('progress-bar');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const pronounceBtn = document.getElementById('pronounce-btn');
+        const ttsOnlyBtn = document.getElementById('tts-only-btn');
+        const refreshBtn = document.getElementById('refresh-btn');
+        const wordListContainer = document.getElementById('word-list');
+        const recordingStatus = document.getElementById('recording-status');
+        const loadingStatus = document.getElementById('loading-status');
+        const evaluationResultDiv = document.getElementById('evaluation-result');
+        const scoreText = document.getElementById('score-text');
+        const feedbackDetail = document.getElementById('feedback-detail');
+
+        // --- 工具函数 ---
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const base64String = reader.result.split(',')[1];
+                    resolve(base64String);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+        
+        async function fetchWithRetry(fn, maxRetries = 3) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    return await fn();
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error;
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        // --- 核心功能：发音 (TTS) ---
+        function speakTargetPhrase() {
+            if (totalWords === 0) return;
+            const currentData = kidsWords[currentWordIndex];
+            const textToSpeak = currentData.english + ". " + currentData.example;
+            
+            if ('speechSynthesis' in window) {
+                if (window.speechSynthesis.speaking) {
+                    window.speechSynthesis.cancel();
+                }
+
+                const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                utterance.lang = 'en-US';
+                
+                // 尝试获取语音列表，但不强求
+                const voices = window.speechSynthesis.getVoices();
+                const usVoice = voices.find(voice => voice.lang === 'en-US'); 
+                if (usVoice) {
+                    utterance.voice = usVoice;
+                }
+                
+                utterance.rate = 0.8;
+                utterance.pitch = 1.1; 
+
+                window.speechSynthesis.speak(utterance);
+                
+                ttsOnlyBtn.classList.add('ring-4', 'ring-blue-300');
+                utterance.onend = () => {
+                    ttsOnlyBtn.classList.remove('ring-4', 'ring-blue-300');
+                };
+            } else {
+                console.warn('TTS not supported');
+            }
+        }
+
+        // --- 核心功能：录音与评分 (LLM) ---
+        async function startRecording() {
+            if (isRecording) return;
+            if (!API_KEY) {
+                showModal('提示', '未配置 API Key，无法进行评分。');
+                return;
+            }
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm; codecs=opus' });
+                audioChunks = [];
+                isRecording = true;
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    stream.getTracks().forEach(track => track.stop());
+                    if (audioChunks.length > 0) {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm; codecs=opus' });
+                        processAudioForEvaluation(audioBlob);
+                    }
+                };
+                
+                mediaRecorder.start();
+                
+                // UI 更新
+                pronounceBtn.classList.add('recording-pulse');
+                recordingStatus.classList.remove('hidden');
+                loadingStatus.classList.add('hidden');
+                evaluationResultDiv.classList.add('hidden');
+
+            } catch (err) {
+                showModal('错误', '无法访问麦克风: ' + err.message);
+                pronounceBtn.classList.remove('recording-pulse');
+                isRecording = false;
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                isRecording = false;
+                pronounceBtn.classList.remove('recording-pulse');
+                recordingStatus.classList.add('hidden');
+            }
+        }
+
+        async function processAudioForEvaluation(audioBlob) {
+            loadingStatus.classList.remove('hidden');
+            evaluationResultDiv.classList.add('hidden');
+            
+            try {
+                const audioBase64 = await blobToBase64(audioBlob);
+                const targetText = kidsWords[currentWordIndex].english + ". " + kidsWords[currentWordIndex].example;
+
+                const result = await evaluateRecording(audioBase64, targetText);
+
+                if (result.score !== undefined) {
+                    displayEvaluationResult(result.score, result.feedback);
+                } else {
+                    displayErrorFeedback("哦豁?", "没听清，再试一次吧！");
+                }
+
+            } catch (error) {
+                console.error("Evaluation error:", error);
+                displayErrorFeedback("网络差", "请稍后再试或检查网络。");
+            } finally {
+                loadingStatus.classList.add('hidden');
+            }
+        }
+
+        async function evaluateRecording(audioBase64, targetText) {
+            const systemPrompt = "你是一个亲切的儿童英语老师。请根据目标文本和录音，对发音给出评分（1-100分）。请严格输出JSON对象：{score: number, feedback: string}。Feedback要简短有趣，用中文鼓励孩子。";
+            const userQuery = `目标文本: "${targetText}"。`;
+            
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${LLM_MODEL}:generateContent?key=${API_KEY}`;
+            
+            const payload = {
+                contents: [{
+                    role: "user",
+                    parts: [
+                        { text: userQuery },
+                        { inlineData: { mimeType: "audio/webm", data: audioBase64 } }
+                    ]
+                }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "score": { "type": "NUMBER" },
+                            "feedback": { "type": "STRING" }
+                        }
+                    }
+                }
+            };
+            
+            const response = await fetchWithRetry(async () => {
+                const res = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    if (res.status === 503) throw new Error("Service Unavailable");
+                    throw new Error("API Error");
+                }
+                return res.json();
+            });
+
+            const result = response.candidates?.[0];
+            if (result && result.content?.parts?.[0]?.text) {
+                return JSON.parse(result.content.parts[0].text);
+            }
+            throw new Error("No content");
+        }
+
+        function displayEvaluationResult(score, feedback) {
+            const color = score >= 90 ? 'text-green-600' : score >= 70 ? 'text-yellow-600' : 'text-red-500';
+            const icon = score >= 90 ? '🌟 ' : score >= 70 ? '👍 ' : '💪 ';
+            scoreText.className = `text-4xl font-black ${color}`;
+            scoreText.textContent = `${icon}${score}分`;
+            feedbackDetail.textContent = feedback;
+            evaluationResultDiv.classList.remove('hidden');
+        }
+
+        function displayErrorFeedback(title, message) {
+            scoreText.className = 'text-2xl font-black text-gray-500';
+            scoreText.textContent = title;
+            feedbackDetail.textContent = message;
+            evaluationResultDiv.classList.remove('hidden');
+        }
+        
+        // --- 界面和导航逻辑 ---
+        function selectNewWordsBatch() {
+            const shuffled = [...allKidsWords].sort(() => 0.5 - Math.random());
+            kidsWords = shuffled.slice(0, BATCH_SIZE);
+            totalWords = kidsWords.length;
+            currentWordIndex = 0;
+
+            setupWordList();
+            updateDisplay();
+            // 不自动发音，等待用户点击，以免浏览器拦截自动播放
+        }
+
+        function updateDisplay() {
+            if (totalWords === 0) return;
+
+            const currentData = kidsWords[currentWordIndex];
+            
+            wordOnScreen.classList.remove('scale-100');
+            wordOnScreen.classList.add('scale-110');
+            setTimeout(() => {
+                wordOnScreen.textContent = currentData.english;
+                wordOnScreen.classList.remove('scale-110');
+                wordOnScreen.classList.add('scale-100');
+            }, 100); 
+
+            currentTranslation.textContent = currentData.chinese;
+            currentExample.textContent = `"${currentData.example}"`;
+
+            wordCounter.textContent = `LEVEL 1-${currentWordIndex + 1}`;
+            const progress = ((currentWordIndex + 1) / totalWords) * 100;
+            progressBar.style.width = `${progress}%`;
+
+            prevBtn.disabled = currentWordIndex === 0;
+            if(prevBtn.disabled) prevBtn.classList.add('opacity-50');
+            else prevBtn.classList.remove('opacity-50');
+
+            nextBtn.disabled = currentWordIndex === totalWords - 1;
+            if(nextBtn.disabled) nextBtn.classList.add('opacity-50');
+            else nextBtn.classList.remove('opacity-50');
+            
+            evaluationResultDiv.classList.add('hidden');
+            loadingStatus.classList.add('hidden');
+            recordingStatus.classList.add('hidden');
+
+            updateWordListHighlight();
+        }
+
+        function goToNext() {
+            if (currentWordIndex < totalWords - 1) {
+                currentWordIndex++;
+                updateDisplay();
+                speakTargetPhrase();
+            }
+        }
+
+        function goToPrev() {
+            if (currentWordIndex > 0) {
+                currentWordIndex--;
+                updateDisplay();
+                speakTargetPhrase();
+            }
+        }
+        
+        function setupWordList() {
+            wordListContainer.innerHTML = '';
+            kidsWords.forEach((word, index) => {
+                const tag = document.createElement('div');
+                tag.textContent = word.english;
+                // 糖果风格标签
+                tag.className = 'px-4 py-2 rounded-xl cursor-pointer transition-all duration-200 border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-white text-gray-700 font-bold hover:-translate-y-1 active:shadow-none active:translate-y-[2px] word-tag';
+                tag.addEventListener('click', () => {
+                    currentWordIndex = index;
+                    updateDisplay();
+                    speakTargetPhrase();
+                });
+                wordListContainer.appendChild(tag);
+            });
+        }
+        
+        function updateWordListHighlight() {
+            const colors = ['bg-pink-300', 'bg-blue-300', 'bg-green-300', 'bg-yellow-300', 'bg-purple-300'];
+            document.querySelectorAll('.word-tag').forEach((tag, index) => {
+                if (index === currentWordIndex) {
+                    tag.className = `px-4 py-2 rounded-xl cursor-pointer transition-all duration-200 border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] text-black font-black scale-110 ${colors[index % colors.length]} word-tag`;
+                    tag.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                } else {
+                    tag.className = 'px-4 py-2 rounded-xl cursor-pointer transition-all duration-200 border-2 border-black shadow-[2px_2px_0_0_rgba(0,0,0,1)] bg-white text-gray-500 font-bold hover:-translate-y-1 active:shadow-none active:translate-y-[2px] word-tag';
+                }
+            });
+        }
+        
+        function showModal(title, message) {
+            alert(`${title}: ${message}`);
+        }
+
+        // --- 初始化和事件绑定 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // 重要修改：不再等待语音引擎初始化，直接加载词汇
+            selectNewWordsBatch();
+
+            nextBtn.addEventListener('click', goToNext);
+            prevBtn.addEventListener('click', goToPrev);
+            refreshBtn.addEventListener('click', selectNewWordsBatch); 
+            ttsOnlyBtn.addEventListener('click', speakTargetPhrase);
+            wordOnScreen.addEventListener('click', speakTargetPhrase);
+
+            let clickTimer;
+            const LONG_PRESS_DELAY = 300; 
+
+            function handlePressStart(e) {
+                e.preventDefault(); 
+                if (clickTimer) clearTimeout(clickTimer); 
+                clickTimer = setTimeout(() => {
+                    if (totalWords === 0) {
+                        selectNewWordsBatch(); // 尝试重新加载
+                        return;
+                    }
+                    startRecording();
+                }, LONG_PRESS_DELAY);
+            }
+
+            function handlePressEnd(e) {
+                e.preventDefault(); 
+                if (clickTimer) {
+                    clearTimeout(clickTimer);
+                    if (!isRecording) speakTargetPhrase();
+                }
+                if (isRecording) stopRecording();
+            }
+
+            pronounceBtn.addEventListener('mousedown', handlePressStart);
+            pronounceBtn.addEventListener('mouseup', handlePressEnd);
+            pronounceBtn.addEventListener('mouseleave', () => { 
+                if (isRecording) stopRecording();
+                if (clickTimer) clearTimeout(clickTimer);
+            });
+            
+            pronounceBtn.addEventListener('touchstart', handlePressStart, { passive: false });
+            pronounceBtn.addEventListener('touchend', handlePressEnd, { passive: false });
+        });
+
+    </script>
+</body>
+</html>

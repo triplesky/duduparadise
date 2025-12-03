@@ -1,0 +1,253 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>游戏大厅 - 嘟嘟乐园</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    
+    <style>
+        /* 全局字体 */
+        body {
+            font-family: 'ZCOOL KuaiLe', cursive, sans-serif;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #ddd6fe; /* 浅紫色背景 */
+        }
+
+        /* 锁定滚动 */
+        body.modal-open {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* === 卡通风格核心 CSS (复用) === */
+        .cartoon-card {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .cartoon-card:active {
+            transform: translate(4px, 4px) !important; 
+            box-shadow: 0px 0px 0px 0px !important; 
+        }
+
+        .cartoon-text-stroke {
+            -webkit-text-stroke: 2px #5b21b6; /* 紫色描边 */
+            text-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+        }
+        .cartoon-text-stroke-white {
+            -webkit-text-stroke: 3px #ffffff;
+            paint-order: stroke fill;
+        }
+
+        /* 背景云朵动画 */
+        @keyframes floatCloud {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100vw); }
+        }
+        .cloud { position: absolute; opacity: 0.8; pointer-events: none; z-index: 0; filter: drop-shadow(0 4px 0 rgba(0,0,0,0.1)); }
+        .cloud-1 { top: 10%; left: -20%; animation: floatCloud 30s linear infinite; font-size: 5rem; }
+        .cloud-2 { top: 60%; left: -10%; animation: floatCloud 40s linear infinite; animation-delay: 5s; font-size: 3.5rem; }
+
+        @media (hover: hover) {
+            .cartoon-card:hover { transform: translateY(-4px); }
+            .cartoon-card:hover .icon-shake { animation: shake 0.5s ease-in-out infinite; }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+        }
+        
+        .float-y { animation: floatY 3s ease-in-out infinite; }
+        @keyframes floatY { 
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    boxShadow: {
+                        'cartoon-purple': '6px 6px 0px 0px #581c87', 
+                        'cartoon-indigo': '6px 6px 0px 0px #312e81',
+                        'cartoon-red': '6px 6px 0px 0px #991b1b',
+                        'cartoon-green': '6px 6px 0px 0px #14532d',
+                        'cartoon-black': '4px 4px 0px 0px rgba(0,0,0,1)',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen relative pb-safe select-none">
+
+    <!-- 返回首页按钮 -->
+    <a href="index_nav.html" class="fixed top-4 left-4 z-50 bg-white border-4 border-black rounded-full w-14 h-14 md:w-16 md:h-16 flex items-center justify-center shadow-cartoon-black transition-transform active:translate-x-1 active:translate-y-1 active:shadow-none no-underline hover:-translate-y-1">
+        <span class="text-3xl">🏠</span>
+    </a>
+
+    <!-- 装饰云朵 -->
+    <div class="cloud cloud-1">☁️</div>
+    <div class="cloud cloud-2">☁️</div>
+    
+    <main class="relative z-10 container mx-auto px-4 py-8 md:py-12 max-w-5xl">
+        
+        <!-- 标题区 -->
+        <header class="text-center mb-12 relative">
+            <h1 class="text-5xl md:text-8xl text-purple-400 cartoon-text-stroke font-black inline-block relative z-10 drop-shadow-lg">
+                游戏大厅
+                <span class="absolute -top-4 -right-8 text-4xl text-yellow-400 animate-spin-slow">🎮</span>
+            </h1>
+            <p class="mt-4 text-purple-600 text-xl font-bold bg-white/50 inline-block px-4 py-1 rounded-full border-2 border-purple-400">
+                Game Center
+            </p>
+        </header>
+
+        <!-- 游戏入口网格：3列布局 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+            
+            <!-- 1. 穿越太空 (Space Travel) -->
+            <div onclick="openModal('穿越太空', '在浩瀚的宇宙中自由翱翔，探索神秘的星球！', 'bg-indigo-500', 'border-indigo-800', 'space.html')"
+                 class="cartoon-card bg-indigo-400 border-4 border-indigo-800 rounded-[2rem] p-6 h-64 md:h-80 shadow-cartoon-indigo flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer">
+                <!-- 装饰 -->
+                <div class="absolute top-4 right-4 text-3xl opacity-50 animate-pulse">✨</div>
+                <div class="absolute bottom-4 left-4 text-5xl opacity-30">🪐</div>
+                
+                <!-- 图标 -->
+                <div class="text-7xl md:text-8xl mb-4 drop-shadow-md float-y">👨‍🚀</div>
+                
+                <!-- 标题 -->
+                <h2 class="text-4xl text-white font-black z-10 cartoon-text-stroke-white" style="-webkit-text-stroke: 0px;">穿越太空</h2>
+                <div class="mt-2 bg-indigo-900/40 px-4 py-1 rounded-full border-2 border-indigo-200">
+                    <span class="text-indigo-100 font-bold">Space Travel</span>
+                </div>
+            </div>
+
+            <!-- 2. 雷霆战机 (Plane War) -->
+            <div onclick="openModal('雷霆战机', '警报！警报！敌机来袭！全员准备战斗！biu biu biu!', 'bg-red-500', 'border-red-900', 'plane.html')"
+                 class="cartoon-card bg-red-400 border-4 border-red-900 rounded-[2rem] p-6 h-64 md:h-80 shadow-cartoon-red flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer">
+                <!-- 装饰 -->
+                <div class="absolute top-2 left-2 w-full h-full opacity-10" style="background-image: radial-gradient(#7f1d1d 2px, transparent 2px); background-size: 10px 10px;"></div>
+                
+                <!-- 图标 -->
+                <div class="icon-shake text-7xl md:text-8xl mb-4 drop-shadow-md">🚀</div>
+                
+                <!-- 标题 -->
+                <h2 class="text-4xl text-white font-black z-10 cartoon-text-stroke-white" style="-webkit-text-stroke: 0px;">雷霆战机</h2>
+                <div class="mt-2 bg-red-900/30 px-4 py-1 rounded-full border-2 border-red-200">
+                    <span class="text-red-100 font-bold">Plane War</span>
+                </div>
+            </div>
+
+            <!-- 3. 连连看 (Puzzle Fun) - 新增 -->
+            <div onclick="openModal('趣味连连看', '这里有好多水果和动物，快来帮它们找朋友！', 'bg-green-500', 'border-green-800', '/')"
+                 class="cartoon-card bg-green-400 border-4 border-green-800 rounded-[2rem] p-6 h-64 md:h-80 shadow-cartoon-green flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer">
+                <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#064e3b 2px, transparent 2px); background-size: 20px 20px;"></div>
+                
+                <div class="icon-shake text-7xl md:text-8xl mb-4 drop-shadow-md">🧩</div>
+                
+                <h2 class="text-4xl text-white font-black z-10 cartoon-text-stroke-white" style="-webkit-text-stroke: 0px;">连连看</h2>
+                 <div class="mt-2 bg-green-900/30 px-4 py-1 rounded-full border-2 border-green-200">
+                    <span class="text-green-100 font-bold">Puzzle Fun</span>
+                </div>
+                <div class="absolute top-3 right-3 w-8 h-8 rounded-lg bg-red-400 border-2 border-black transform rotate-12"></div>
+                <div class="absolute bottom-8 left-4 w-8 h-8 rounded-lg bg-blue-400 border-2 border-black transform -rotate-12"></div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 弹窗 (复用首页逻辑) -->
+    <div id="modal-backdrop" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center backdrop-blur-sm p-4 transition-opacity duration-300">
+        <div id="modal-content" class="bg-white rounded-[2.5rem] border-[6px] border-black w-full max-w-lg p-6 md:p-10 relative shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] transform scale-90 opacity-0 transition-all duration-300 text-center">
+            
+            <button onclick="closeModal()" class="absolute top-4 right-4 bg-red-400 hover:bg-red-500 border-2 border-black rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-white transition-transform active:scale-90 z-20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+
+            <div id="modal-icon-bg" class="w-24 h-24 md:w-32 md:h-32 rounded-full mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] bg-yellow-300">
+                <span id="modal-icon" class="text-5xl md:text-7xl filter drop-shadow-sm">🎮</span>
+            </div>
+            
+            <h3 id="modal-title" class="text-3xl md:text-4xl text-gray-900 mb-4 font-black">标题</h3>
+            <p id="modal-desc" class="text-xl text-gray-600 mb-8 font-medium px-2">描述</p>
+            
+            <button onclick="enterPage()" id="modal-btn" class="w-full text-2xl md:text-3xl py-4 rounded-2xl font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none bg-green-400 text-white flex items-center justify-center gap-2 relative overflow-hidden">
+                <span class="relative z-10">Start Game! 🎮</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const body = document.body;
+        const backdrop = document.getElementById('modal-backdrop');
+        const content = document.getElementById('modal-content');
+        const modalTitle = document.getElementById('modal-title');
+        const modalDesc = document.getElementById('modal-desc');
+        const modalIcon = document.getElementById('modal-icon');
+        const modalIconBg = document.getElementById('modal-icon-bg');
+        const modalBtn = document.getElementById('modal-btn');
+        let currentTargetUrl = '';
+
+        function openModal(title, desc, colorClass, borderClass, url) {
+            body.classList.add('modal-open');
+            currentTargetUrl = url;
+            modalTitle.textContent = title;
+            modalDesc.textContent = desc;
+            
+            const colorBase = colorClass.replace('bg-', ''); 
+            modalIconBg.className = `w-24 h-24 md:w-32 md:h-32 rounded-full mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] ${colorClass}`;
+            modalBtn.className = `w-full text-2xl md:text-3xl py-4 rounded-2xl font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none ${colorClass} text-white flex items-center justify-center gap-2 relative overflow-hidden`;
+
+            if (title.includes('战机')) modalIcon.textContent = '🚀';
+            else if (title.includes('太空')) modalIcon.textContent = '👨‍🚀';
+            else if (title.includes('连连看')) modalIcon.textContent = '🧩';
+            else modalIcon.textContent = '🎮';
+
+            backdrop.classList.remove('hidden');
+            void backdrop.offsetWidth; 
+            backdrop.classList.remove('opacity-0');
+            content.classList.remove('scale-90', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }
+
+        function closeModal() {
+            body.classList.remove('modal-open');
+            backdrop.classList.add('opacity-0');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-90', 'opacity-0');
+            setTimeout(() => { backdrop.classList.add('hidden'); }, 300);
+        }
+
+        function enterPage() {
+            const btn = event.currentTarget;
+            const span = btn.querySelector('span');
+            const originalText = span.textContent;
+            span.textContent = "Loading... ⏳";
+            btn.classList.add('grayscale');
+            setTimeout(() => {
+                span.textContent = originalText;
+                btn.classList.remove('grayscale');
+                if (currentTargetUrl) window.location.href = currentTargetUrl;
+                closeModal();
+            }, 800);
+        }
+
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) closeModal();
+        });
+    </script>
+</body>
+</html>
+    

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Espresso Machine Simulation</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #121212;
+            color: #eee;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+            border-radius: 16px;
+            background: #1e1e1e;
+            padding: 4px;
+            border: 1px solid #333;
+        }
+
+        canvas {
+            display: block;
+            background: #222;
+            border-radius: 12px;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 20px;
+            background: #2a2a2a;
+            padding: 15px 30px;
+            border-radius: 30px;
+            align-items: center;
+            border: 1px solid #444;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        button {
+            background: #d4a373;
+            border: none;
+            padding: 12px 32px;
+            color: #111;
+            font-size: 16px;
+            font-weight: 800;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover { background: #e5b686; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(212, 163, 115, 0.3); }
+        button:active { transform: translateY(0); }
+        
+        button.stop { background: #ff4757; color: white; }
+        button.stop:hover { background: #ff6b81; box-shadow: 0 5px 15px rgba(255, 71, 87, 0.3); }
+
+        .status-panel {
+            display: flex;
+            gap: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            color: #888;
+        }
+        
+        .status-item {
+            background: #111;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+
+        .val { color: #d4a373; font-weight: bold; font-size: 16px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <canvas id="machineCanvas"></canvas>
+    </div>
+
+    <div class="controls">
+        <button id="toggleBtn">启动萃取 (START)</button>
+        <div class="status-panel">
+            <div class="status-item">TEMP: <span id="tempVal" class="val">92</span>°C</div>
+            <div class="status-item">BAR: <span id="pressureVal" class="val">0.0</span></div>
+        </div>
+    </div>
+
+<script>
+// Use window.onload to ensure all page elements are loaded before running script
+window.onload = function() {
+    const canvas = document.getElementById('machineCanvas');
+    const ctx = canvas.getContext('2d');
+    const toggleBtn = document.getElementById('toggleBtn');
+    const pressureDisplay = document.getElementById('pressureVal');
+    const tempDisplay = document.getElementById('tempVal');
+
+    // Set canvas dimensions
+    const width = 800;
+    const height = 500;
+    canvas.width = width;
+    canvas.height = height;
+
+    // --- 1. Define Machine Component Coordinates ---
+    const MACHINE = {
+        tank:  { x: 80,  y: 100, w: 100, h: 280 }, // Water Tank
+        pump:  { x: 250, y: 340, r: 28 },         // Pump
+        boiler:{ x: 360, y: 140, w: 150, h: 90 }, // Heater/Boiler
+        head:  { x: 600, y: 160, w: 90,  h: 45 }, // Group Head
+        portafilter: { x: 605, y: 205, w: 80, h: 25 }, // Portafilter/Puck
+        cup:   { x: 610, y: 340, w: 70,  h: 60 }   // Cup
+    };
+
+    // --- 2. Define Water Flow Paths ---
+    const PATHS = {
+        // Path 1: Tank -> Pump (Line segments)
+        tankToPump: [
+            { x: MACHINE.tank.x + MACHINE.tank.w/2, y: MACHINE.tank.y + MACHINE.tank.h - 10 }, // Start point inside tank
+            { x: MACHINE.tank.x + MACHINE.tank.w/2, y: MACHINE.pump.y },                       // Vertical turn
+            { x: MACHINE.pump.x - MACHINE.pump.r,   y: MACHINE.pump.y }                       // Entry point to pump
+        ],
+        // Path 2: Pump -> Boiler (Bezier Curve)
+        pumpToBoiler: {
+            start: { x: MACHINE.pump.x, y: MACHINE.pump.y - MACHINE.pump.r },
+            cp1:   { x: MACHINE.pump.x, y: MACHINE.boiler.y + MACHINE.boiler.h/2 },
+            cp2:   { x: MACHINE.boiler.x - 40, y: MACHINE.boiler.y + MACHINE.boiler.h/2 },
+            end:   { x: MACHINE.boiler.x, y: MACHINE.boiler.y + MACHINE.boiler.h/2 }
+        },
+        // Path 3: Boiler -> Head (Straight Line)
+        boilerToHead: {
+            start: { x: MACHINE.boiler.x + MACHINE.boiler.w, y: MACHINE.boiler.y + MACHINE.boiler.h/2 },
+            end:   { x: MACHINE.head.x, y: MACHINE.head.y + MACHINE.head.h/2 }
+        }
+    };
+
+    // --- 3. State Variables ---
+    let isBrewing = false;
+    let pressure = 0;
+    let cupLevel = 0;
+    let pumpAngle = 0;
+
+    // --- 4. Particle Class (Water/Coffee) ---
+    class Particle {
+        constructor() {
+            this.reset();
+        }
+
+        reset() {
+            this.active = true;
+            this.state = 'tank'; // Initial state: 'tank'
+            this.x = MACHINE.tank.x + 10 + Math.random() * (MACHINE.tank.w - 20);
+            this.y = MACHINE.tank.y + MACHINE.tank.h - 10 - Math.random() * 100;
+            this.color = 'rgba(100, 180, 255, 0.6)'; // Cold Water Blue
+            this.size = 2 + Math.random() * 2;
+            this.speed = 2 + Math.random();
+            
+            // Path tracking variables
+            this.pathIndex = 0;
+            this.progress = 0; // Segment progress or Bezier t-value
+            this.heat = 0;     // 0 (Cold) to 1 (Hot)
+        }
+
+        update() {
+            // Particles only move out of tank if brewing starts
+            if (!isBrewing && this.state === 'tank') return;
+
+            switch (this.state) {
+                case 'tank':
+                    // Move towards the tank outlet
+                    const startNode = PATHS.tankToPump[0];
+                    const dx = startNode.x - this.x;
+                    const dy = startNode.y - this.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (dist < 5) {
+                        this.state = 'pipe1';
+                        this.x = startNode.x;
+                        this.y = startNode.y;
+                        this.pathIndex = 0;
+                        this.progress = 0;
+                    } else {
+                        this.x += (dx/dist) * this.speed;
+                        this.y += (dy/dist) * this.speed;
+                    }
+                    break;
+
+                case 'pipe1': // Tank -> Pump (Line segments)
+                    const p1 = PATHS.tankToPump[this.pathIndex];
+                    const p2 = PATHS.tankToPump[this.pathIndex+1];
+                    
+                    if (!p2) { this.state = 'pump'; this.progress = 0; return; }
+
+                    const segDx = p2.x - p1.x;
+                    const segDy = p2.y - p1.y;
+                    const segLen = Math.sqrt(segDx*segDx + segDy*segDy);
+
+                    this.progress += this.speed;
+                    if (this.progress >= segLen) {
+                        this.progress = 0;
+                        this.pathIndex++;
+                        this.x = p2.x;
+                        this.y = p2.y;
+                    } else {
+                        // Interpolate position along the current segment
+                        this.x = p1.x + (segDx/segLen) * this.progress;
+                        this.y = p1.y + (segDy/segLen) * this.progress;
+                        // Add slight turbulence
+                        this.x += (Math.random()-0.5);
+                    }
+                    break;
+
+                case 'pump':
+                    // Spiral movement inside the pump to simulate pressurization
+                    this.progress += 0.15;
+                    const spiralRadius = this.progress * 10; // Renamed to avoid conflict with 'r' in 'boiler' case
+                    this.x = MACHINE.pump.x + Math.cos(this.progress * 5) * spiralRadius;
+                    this.y = MACHINE.pump.y + Math.sin(this.progress * 5) * spiralRadius;
+                    
+                    if (this.progress > 1.5) {
+                        this.state = 'pipe2';
+                        this.progress = 0; // Reset for Bezier t-value
+                    }
+                    break;
+
+                case 'pipe2': // Pump -> Boiler (Bezier)
+                    this.progress += 0.015 * (this.speed/2);
+                    if (this.progress >= 1) {
+                        this.state = 'boiler';
+                        this.progress = 0;
+                    } else {
+                        const t = this.progress;
+                        const it = 1 - t;
+                        const { start, cp1, cp2, end } = PATHS.pumpToBoiler;
+                        // Cubic Bezier formula
+                        this.x = (it**3)*start.x + 3*(it**2)*t*cp1.x + 3*it*(t**2)*cp2.x + (t**3)*end.x;
+                        this.y = (it**3)*start.y + 3*(it**2)*t*cp1.y + 3*it*(t**2)*cp2.y + (t**3)*end.y;
+                    }
+                    break;
+
+                case 'boiler': // Heating
+                    this.x += this.speed * 0.6; // Slow movement for heating time
+                    // Vertical oscillation inside the heating coil
+                    this.y = MACHINE.boiler.y + MACHINE.boiler.h/2 + Math.sin(this.x * 0.1) * 15;
+                    
+                    // Color change logic: Blue -> Red
+                    this.heat = Math.min(1, this.heat + 0.015);
+                    const r = 100 + 155 * this.heat; // Now safe from conflict
+                    const g = 180 - 120 * this.heat;
+                    const b = 255 - 195 * this.heat;
+                    this.color = `rgba(${r},${g},${b},0.8)`;
+
+                    if (this.x > MACHINE.boiler.x + MACHINE.boiler.w) {
+                        this.state = 'pipe3';
+                        this.progress = 0;
+                        this.x = PATHS.boilerToHead.start.x;
+                        this.y = PATHS.boilerToHead.start.y;
+                    }
+                    break;
+
+                case 'pipe3': // Boiler -> Head (Straight Line)
+                    const pipe3Start = PATHS.boilerToHead.start;
+                    const pipe3End = PATHS.boilerToHead.end;
+                    const dx3 = pipe3End.x - pipe3Start.x;
+                    const len3 = Math.abs(dx3);
+                    
+                    this.progress += this.speed;
+                    if (this.progress >= len3) {
+                        this.state = 'puck';
+                        // Spread out upon entering the puck area
+                        this.x = MACHINE.head.x + 10 + Math.random() * (MACHINE.head.w - 20);
+                        this.y = MACHINE.portafilter.y; 
+                    } else {
+                        // Simple horizontal movement
+                        this.x = pipe3Start.x + this.progress;
+                        this.y = pipe3Start.y;
+                    }
+                    break;
+
+                case 'puck':
+                    this.y += this.speed * 0.3; // Slow down due to resistance
+                    this.color = '#3e2723';     // Turn into coffee color
+                    this.x += (Math.random() - 0.5) * 2; // Simulate diffusion
+
+                    if (this.y > MACHINE.portafilter.y + MACHINE.portafilter.h) {
+                        this.state = 'drip';
+                        // Converge to the spout center
+                        this.x = MACHINE.portafilter.x + MACHINE.portafilter.w/2 + (Math.random()-0.5)*4;
+                    }
+                    break;
+
+                case 'drip':
+                    this.y += 5; // Free fall
+                    const cupTopY = MACHINE.cup.y + MACHINE.cup.h - cupLevel;
+                    
+                    if (this.y >= cupTopY) {
+                        this.active = false;
+                        if (cupLevel < MACHINE.cup.h - 5) cupLevel += 0.03; // Fill cup
+                        this.reset(); // Recycle particle
+                        if (isBrewing) this.state = 'pipe1'; // Quick restart for continuity
+                    }
+                    break;
+            }
+        }
+
+        draw() {
+            if (!this.active) return;
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+            ctx.fill();
+        }
+    }
+
+    // Create particle pool
+    const particles = Array.from({ length: 200 }, () => new Particle());
+
+    // --- 5. Drawing Helpers ---
+    function drawPipeLine(pts) {
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+    }
+
+    function drawBezierPipe(path) {
+        ctx.beginPath();
+        ctx.moveTo(path.start.x, path.start.y);
+        ctx.bezierCurveTo(path.cp1.x, path.cp1.y, path.cp2.x, path.cp2.y, path.end.x, path.end.y);
+        ctx.stroke();
+    }
+
+    function drawMachineBase() {
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.font = '14px Roboto'; // Set font for labels
+
+        // 1. Draw Pipe Background (Dark pipe walls)
+        ctx.lineWidth = 12;
+        ctx.strokeStyle = '#333';
+        drawPipeLine(PATHS.tankToPump);
+        drawBezierPipe(PATHS.pumpToBoiler);
+        ctx.beginPath(); 
+        ctx.moveTo(PATHS.boilerToHead.start.x, PATHS.boilerToHead.start.y);
+        ctx.lineTo(PATHS.boilerToHead.end.x, PATHS.boilerToHead.end.y);
+        ctx.stroke();
+
+        // 2. Water Tank
+        ctx.lineWidth = 2;
+        ctx.fillStyle = 'rgba(50, 100, 200, 0.1)';
+        ctx.strokeStyle = '#555';
+        ctx.fillRect(MACHINE.tank.x, MACHINE.tank.y, MACHINE.tank.w, MACHINE.tank.h);
+        ctx.strokeRect(MACHINE.tank.x, MACHINE.tank.y, MACHINE.tank.w, MACHINE.tank.h);
+        // Water Level
+        ctx.fillStyle = 'rgba(50, 150, 255, 0.2)';
+        ctx.fillRect(MACHINE.tank.x + 2, MACHINE.tank.y + 40, MACHINE.tank.w - 4, MACHINE.tank.h - 42);
+        ctx.fillStyle = '#888';
+        ctx.fillText("水箱 (Water Tank)", MACHINE.tank.x + 5, MACHINE.tank.y - 10);
+
+        // 3. Pump
+        ctx.save();
+        ctx.translate(MACHINE.pump.x, MACHINE.pump.y);
+        // Pump Body
+        ctx.fillStyle = '#222';
+        ctx.strokeStyle = '#666';
+        ctx.beginPath(); ctx.arc(0, 0, MACHINE.pump.r, 0, Math.PI*2); 
+        ctx.fill(); ctx.stroke();
+        // Impeller (Fan Blades)
+        if (isBrewing) pumpAngle += 0.2;
+        ctx.rotate(pumpAngle);
+        ctx.fillStyle = '#d4a373';
+        for(let i=0; i<3; i++) {
+            ctx.rotate(Math.PI*2/3);
+            ctx.fillRect(-4, -20, 8, 20);
+        }
+        ctx.restore();
+        ctx.fillText("泵 (Pump)", MACHINE.pump.x - 15, MACHINE.pump.y + 45);
+
+        // 4. Boiler
+        ctx.fillStyle = '#2a2a2a';
+        ctx.strokeStyle = '#777';
+        ctx.fillRect(MACHINE.boiler.x, MACHINE.boiler.y, MACHINE.boiler.w, MACHINE.boiler.h);
+        ctx.strokeRect(MACHINE.boiler.x, MACHINE.boiler.y, MACHINE.boiler.w, MACHINE.boiler.h);
+        // Heating element effect
+        ctx.beginPath();
+        ctx.strokeStyle = isBrewing ? `rgba(255, 50, 50, ${0.6 + Math.sin(Date.now()*0.01)*0.4})` : '#444';
+        ctx.lineWidth = 6;
+        let by = MACHINE.boiler.y + MACHINE.boiler.h/2;
+        ctx.moveTo(MACHINE.boiler.x + 10, by);
+        ctx.lineTo(MACHINE.boiler.x + MACHINE.boiler.w - 10, by);
+        ctx.stroke();
+        ctx.fillText("加热块 (Boiler)", MACHINE.boiler.x + 5, MACHINE.boiler.y - 10);
+
+        // 5. Group Head
+        ctx.fillStyle = '#444';
+        ctx.fillRect(MACHINE.head.x, MACHINE.head.y, MACHINE.head.w, MACHINE.head.h);
+        
+        // 6. Portafilter (Handle)
+        ctx.fillStyle = '#111';
+        ctx.beginPath();
+        ctx.moveTo(MACHINE.portafilter.x, MACHINE.portafilter.y);
+        ctx.lineTo(MACHINE.portafilter.x + MACHINE.portafilter.w, MACHINE.portafilter.y);
+        ctx.lineTo(MACHINE.portafilter.x + MACHINE.portafilter.w - 10, MACHINE.portafilter.y + MACHINE.portafilter.h);
+        ctx.lineTo(MACHINE.portafilter.x + 10, MACHINE.portafilter.y + MACHINE.portafilter.h);
+        ctx.fill();
+        // Coffee Puck
+        ctx.fillStyle = '#4e342e';
+        ctx.fillRect(MACHINE.portafilter.x + 8, MACHINE.portafilter.y + 2, MACHINE.portafilter.w - 16, 12);
+        ctx.fillText("咖啡粉 (Puck)", MACHINE.portafilter.x - 20, MACHINE.portafilter.y + MACHINE.portafilter.h + 20);
+
+
+        // 7. Cup
+        ctx.fillStyle = '#eee';
+        const cupCX = MACHINE.cup.x + MACHINE.cup.w/2;
+        const cupCY = MACHINE.cup.y + MACHINE.cup.h/2;
+        ctx.beginPath();
+        ctx.arc(cupCX, cupCY, MACHINE.cup.w/2, 0, Math.PI);
+        ctx.fill();
+        
+        // Coffee Liquid Level
+        if (cupLevel > 0) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cupCX, cupCY, MACHINE.cup.w/2 - 2, 0, Math.PI);
+            ctx.clip();
+            const liquidY = MACHINE.cup.y + MACHINE.cup.h - cupLevel;
+            ctx.fillStyle = '#3e2723';
+            ctx.fillRect(MACHINE.cup.x, liquidY, MACHINE.cup.w, cupLevel);
+            // Crema Layer
+            ctx.fillStyle = '#bcaaa4';
+            ctx.fillRect(MACHINE.cup.x, liquidY, MACHINE.cup.w, 4);
+            ctx.restore();
+        }
+    }
+
+    function drawPipeOverlay() {
+        // Pipe glass reflection layer (drawn over particles)
+        ctx.lineWidth = 12;
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        drawPipeLine(PATHS.tankToPump);
+        drawBezierPipe(PATHS.pumpToBoiler);
+        ctx.beginPath(); 
+        ctx.moveTo(PATHS.boilerToHead.start.x, PATHS.boilerToHead.start.y);
+        ctx.lineTo(PATHS.boilerToHead.end.x, PATHS.boilerToHead.end.y);
+        ctx.stroke();
+    }
+
+    // --- 6. Animation Loop ---
+    function loop() {
+        // Clear canvas
+        ctx.clearRect(0, 0, width, height);
+
+        drawMachineBase();
+
+        // Update and draw particles
+        particles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+
+        drawPipeOverlay();
+
+        // Simulate pressure gauge
+        if (isBrewing) {
+            if (pressure < 9.2) pressure += 0.1;
+        } else {
+            if (pressure > 0) pressure -= 0.2;
+        }
+        pressureDisplay.innerText = Math.max(0, pressure).toFixed(1);
+
+        requestAnimationFrame(loop);
+    }
+
+    // --- 7. Event Binding ---
+    toggleBtn.onclick = function() {
+        isBrewing = !isBrewing;
+        if (isBrewing) {
+            toggleBtn.innerHTML = "停止萃取 (STOP)";
+            toggleBtn.classList.add('stop');
+            // Activate dormant particles in the tank
+            particles.forEach(p => { if (p.state === 'tank') p.active = true; });
+        } else {
+            toggleBtn.innerHTML = "启动萃取 (START)";
+            toggleBtn.classList.remove('stop');
+        }
+    };
+
+    // Start the animation loop
+    loop();
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 保持移动端优化配置 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>嘟嘟乐园 - 快乐一夏</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    
+    <style>
+        /* 全局字体 */
+        body {
+            font-family: 'ZCOOL KuaiLe', cursive, sans-serif;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #AEE2FF; /* 更明亮的天空蓝 */
+        }
+
+        /* 锁定滚动 */
+        body.modal-open {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* === 卡通风格核心 CSS === 
+           使用硬阴影 (0px blur) 制造玩具积木的感觉
+        */
+        .cartoon-card {
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            top: 0;
+            left: 0;
+        }
+        
+        /* 移动端按下效果：卡片下沉，阴影消失 */
+        .cartoon-card:active {
+            transform: translate(4px, 4px) !important; /* 向右下移动，抵消阴影 */
+            box-shadow: 0px 0px 0px 0px !important; /* 阴影消失 */
+        }
+
+        /* 标题文字描边效果，像漫画 Logo */
+        .cartoon-text-stroke {
+            -webkit-text-stroke: 2px #0ea5e9; /* 蓝色描边 */
+            text-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+        }
+        .cartoon-text-stroke-white {
+            -webkit-text-stroke: 3px #ffffff;
+            paint-order: stroke fill;
+        }
+
+        /* 背景云朵动画 */
+        @keyframes floatCloud {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100vw); }
+        }
+        .cloud { position: absolute; opacity: 0.9; pointer-events: none; z-index: 0; filter: drop-shadow(0 4px 0 rgba(0,0,0,0.1)); }
+        .cloud-1 { top: 5%; left: -20%; animation: floatCloud 25s linear infinite; font-size: 5rem; }
+        .cloud-2 { top: 18%; left: -10%; animation: floatCloud 35s linear infinite; animation-delay: 5s; font-size: 3.5rem; }
+        .cloud-3 { top: 10%; left: -30%; animation: floatCloud 40s linear infinite; animation-delay: 8s; font-size: 6rem; }
+
+        /* 悬停抖动 (仅限非触摸设备) */
+        @media (hover: hover) {
+            .cartoon-card:hover {
+                transform: translateY(-4px);
+            }
+            .cartoon-card:hover .icon-shake {
+                animation: shake 0.5s ease-in-out infinite;
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+        }
+
+        /* 装饰元素动画 */
+        .spin-slow { animation: spin 8s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        
+        .float-y { animation: floatY 3s ease-in-out infinite; }
+        @keyframes floatY { 
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* 音乐按钮动画 */
+        .music-playing { animation: pulse-music 1.5s infinite; }
+        @keyframes pulse-music {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+    
+    <!-- 配置 Tailwind 自定义颜色 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    boxShadow: {
+                        'cartoon-yellow': '6px 6px 0px 0px #d97706', // 橙色硬阴影
+                        'cartoon-indigo': '6px 6px 0px 0px #312e81', // 深蓝硬阴影
+                        'cartoon-green': '6px 6px 0px 0px #14532d', // 深绿硬阴影
+                        'cartoon-orange': '6px 6px 0px 0px #7c2d12', // 深棕硬阴影
+                        'cartoon-pink': '6px 6px 0px 0px #be185d',   // 深粉硬阴影
+                        'cartoon-white': '6px 6px 0px 0px #94a3b8',   // 灰色硬阴影
+                        'cartoon-black': '4px 4px 0px 0px rgba(0,0,0,1)', // 黑色硬阴影
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-[#AEE2FF] min-h-screen relative pb-safe select-none">
+
+    <!-- 音乐播放开关：左上角 -->
+    <button id="music-btn" onclick="toggleMusic(event)" class="fixed top-4 left-4 z-50 bg-white border-4 border-black rounded-full w-14 h-14 md:w-16 md:h-16 flex items-center justify-center shadow-cartoon-black transition-transform active:translate-x-1 active:translate-y-1 active:shadow-none music-playing">
+        <span id="music-icon" class="text-2xl md:text-3xl">🎵</span>
+    </button>
+
+    <!-- 装饰云朵 -->
+    <div class="cloud cloud-1">☁️</div>
+    <div class="cloud cloud-2">☁️</div>
+    <div class="cloud cloud-3">☁️</div>
+    
+    <!-- 太阳装饰 -->
+    <div class="fixed top-[-50px] right-[-50px] w-40 h-40 md:w-60 md:h-60 bg-yellow-300 rounded-full border-4 border-yellow-500 z-0 spin-slow flex items-center justify-center opacity-80">
+        <div class="text-4xl md:text-6xl animate-pulse">☀️</div>
+    </div>
+
+    <main class="relative z-10 container mx-auto px-4 py-6 md:py-10 max-w-5xl">
+        
+        <!-- 标题区：更夸张的漫画风格 -->
+        <header class="text-center mb-10 md:mb-14 relative">
+            <h1 class="text-6xl md:text-9xl text-yellow-400 cartoon-text-stroke font-black transform -rotate-2 inline-block relative z-10 drop-shadow-lg">
+                嘟嘟乐园
+                <!-- 装饰性的小星星 -->
+                <span class="absolute -top-4 -left-6 text-4xl text-white animate-bounce">✨</span>
+                <span class="absolute bottom-2 -right-8 text-4xl text-white animate-bounce" style="animation-delay: 0.5s">✨</span>
+            </h1>
+            
+            <div class="mt-6 flex justify-center">
+                <div class="bg-white border-4 border-blue-400 rounded-full px-6 py-3 shadow-cartoon-white transform rotate-1">
+                    <p class="text-xl md:text-3xl text-blue-500 font-bold">
+                        🍦 快乐夏天 • 只有开心 🍉
+                    </p>
+                </div>
+            </div>
+        </header>
+
+        <!-- 卡片网格：间距适中，适配 iPad -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10 pb-24">
+            
+            <!-- 1. 说英语 (鲜艳黄 + 橙色描边) -->
+            <div onclick="openModal('英语大冒险', 'Hello! 跟鹦鹉皮皮学说话吧！Are you ready?', 'bg-yellow-400', 'border-yellow-600')" 
+                 class="cartoon-card bg-yellow-300 border-4 border-yellow-600 rounded-[2rem] p-4 h-56 md:h-64 shadow-cartoon-yellow flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer">
+                <!-- 内部白色圆圈背景 -->
+                <div class="absolute w-32 h-32 bg-white/40 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 scale-150"></div>
+                
+                <div class="icon-shake text-6xl md:text-7xl z-10 mb-2 drop-shadow-md">🦜</div>
+                <h2 class="text-3xl md:text-4xl text-yellow-900 font-black z-10">说英语</h2>
+                <div class="bg-white/80 px-3 py-1 rounded-full mt-2 z-10 border-2 border-yellow-600">
+                    <span class="text-yellow-800 font-bold">ABC Time</span>
+                </div>
+                
+                <!-- 装饰贴纸 -->
+                <div class="absolute top-3 left-3 text-4xl opacity-60 rotate-[-15deg]">🅰️</div>
+                <div class="absolute bottom-3 right-3 text-4xl opacity-60 rotate-[15deg]">🅱️</div>
+            </div>
+
+            <!-- 2. 穿越太空 (银河紫 + 深蓝描边) -->
+            <div onclick="openModal('太空探险', '穿上宇航服，我们要飞向火星啦！3...2...1...发射！', 'bg-indigo-500', 'border-indigo-800')"
+                 class="cartoon-card bg-indigo-400 border-4 border-indigo-800 rounded-[2rem] p-4 h-56 md:h-64 shadow-cartoon-indigo flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer">
+                <!-- 内部星空装饰 -->
+                <div class="absolute top-4 left-8 text-white text-opacity-40 text-xl">✦</div>
+                <div class="absolute bottom-8 right-6 text-white text-opacity-40 text-2xl">✦</div>
+                
+                <div class="space-icon text-6xl md:text-7xl z-10 mb-2 drop-shadow-md float-y">🚀</div>
+                <h2 class="text-3xl md:text-4xl text-white font-black z-10 cartoon-text-stroke-white" style="-webkit-text-stroke: 0px;">穿越太空</h2>
+                 <div class="bg-indigo-900/30 px-3 py-1 rounded-full mt-2 z-10 border-2 border-indigo-200">
+                    <span class="text-indigo-100 font-bold">Space Go!</span>
+                </div>
+                
+                <div class="absolute -bottom-4 -left-4 text-6xl opacity-30">🪐</div>
+            </div>
+
+            <!-- 3. 连连看 (鲜草绿 + 深绿描边) -->
+            <div onclick="openModal('趣味连连看', '这里有好多水果和动物，快来帮它们找朋友！', 'bg-green-500', 'border-green-800')"
+                 class="cartoon-card bg-green-400 border-4 border-green-800 rounded-[2rem] p-4 h-56 md:h-64 shadow-cartoon-green flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer">
+                <!-- 棋盘格装饰背景 -->
+                <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#064e3b 2px, transparent 2px); background-size: 20px 20px;"></div>
+                
+                <div class="icon-shake text-6xl md:text-7xl z-10 mb-2 drop-shadow-md">🧩</div>
+                <h2 class="text-3xl md:text-4xl text-green-900 font-black z-10">连连看</h2>
+                 <div class="bg-white/80 px-3 py-1 rounded-full mt-2 z-10 border-2 border-green-800">
+                    <span class="text-green-800 font-bold">Puzzle Fun</span>
+                </div>
+                
+                <div class="absolute top-3 right-3 w-8 h-8 rounded-lg bg-red-400 border-2 border-black transform rotate-12"></div>
+                <div class="absolute top-8 right-8 w-8 h-8 rounded-lg bg-blue-400 border-2 border-black transform -rotate-12"></div>
+            </div>
+
+            <!-- 4. 咖啡机原理 (焦糖橙 + 深棕描边) - 改造得更像玩具 -->
+            <div onclick="openModal('神奇机器', '齿轮转啊转，水变热啦！来看看机器肚子里有什么？', 'bg-orange-500', 'border-orange-800')"
+                 class="cartoon-card bg-orange-300 border-4 border-orange-800 rounded-[2rem] p-4 h-56 md:h-64 shadow-cartoon-orange flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer">
+                
+                <div class="absolute top-0 right-0 w-24 h-24 bg-orange-400 rounded-bl-full z-0"></div>
+                <div class="absolute top-4 right-4 text-3xl spin-slow opacity-50">⚙️</div>
+                
+                <div class="relative z-10 mb-2">
+                    <div class="text-6xl md:text-7xl drop-shadow-md">🤖</div>
+                    <!-- 小气泡 -->
+                    <div class="absolute -top-2 -right-2 text-2xl animate-bounce">☕</div>
+                </div>
+                
+                <h2 class="text-3xl md:text-4xl text-orange-900 font-black z-10">机器原理</h2>
+                 <div class="bg-white/80 px-3 py-1 rounded-full mt-2 z-10 border-2 border-orange-800">
+                    <span class="text-orange-800 font-bold">Science</span>
+                </div>
+            </div>
+
+            <!-- 5. 爱意 (泡泡糖粉 + 深粉描边) -->
+            <div onclick="openModal('爱的信箱', '这里藏着爸爸妈妈的悄悄话，还有好多爱心哦！', 'bg-pink-400', 'border-pink-700')"
+                 class="cartoon-card bg-pink-300 border-4 border-pink-700 rounded-[2rem] p-4 h-56 md:h-64 md:col-span-2 lg:col-span-1 shadow-cartoon-pink flex flex-col items-center justify-center relative overflow-hidden group cursor-pointer">
+                <!-- 爱心波纹背景 -->
+                <div class="absolute w-[200%] h-[200%] bg-pink-200 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-50 pointer-events-none"></div>
+                
+                <div class="icon-shake text-6xl md:text-7xl z-10 mb-2 drop-shadow-md text-red-500">💌</div>
+                <h2 class="text-3xl md:text-4xl text-pink-900 font-black z-10">爱意满满</h2>
+                 <div class="bg-white/80 px-3 py-1 rounded-full mt-2 z-10 border-2 border-pink-700">
+                    <span class="text-pink-700 font-bold">For You ❤️</span>
+                </div>
+                
+                <div class="absolute bottom-4 left-4 text-4xl animate-pulse">🧸</div>
+                <div class="absolute top-4 right-4 text-4xl rotate-12">🎈</div>
+            </div>
+
+        </div>
+
+        <footer class="text-center pb-safe mt-4">
+            <div class="inline-block bg-white/80 backdrop-blur px-6 py-2 rounded-full border-2 border-blue-200 text-blue-500 font-bold shadow-sm">
+                Made for Dudu with ❤️
+            </div>
+        </footer>
+    </main>
+
+    <!-- 弹窗 (卡通风格化) -->
+    <div id="modal-backdrop" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center backdrop-blur-sm p-4 transition-opacity duration-300">
+        <!-- 弹窗本体：加粗边框和硬阴影 -->
+        <div id="modal-content" class="bg-white rounded-[2.5rem] border-[6px] border-black w-full max-w-lg p-6 md:p-10 relative shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] transform scale-90 opacity-0 transition-all duration-300 text-center max-h-[85vh] overflow-y-auto">
+            
+            <!-- 关闭按钮 -->
+            <button onclick="closeModal()" class="absolute top-4 right-4 bg-red-400 hover:bg-red-500 border-2 border-black rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-white transition-transform active:scale-90 z-20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 md:h-8 md:w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <!-- 图标圆圈 -->
+            <div id="modal-icon-bg" class="w-24 h-24 md:w-32 md:h-32 rounded-full mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] bg-yellow-300">
+                <span id="modal-icon" class="text-5xl md:text-7xl filter drop-shadow-sm">🎉</span>
+            </div>
+            
+            <h3 id="modal-title" class="text-3xl md:text-5xl text-gray-900 mb-4 font-black tracking-wide">标题</h3>
+            
+            <p id="modal-desc" class="text-xl md:text-2xl text-gray-600 mb-8 leading-relaxed font-medium px-2">
+                描述内容
+            </p>
+            
+            <!-- 按钮 -->
+            <button onclick="enterPage()" id="modal-btn" class="w-full text-2xl md:text-3xl py-4 rounded-2xl font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none bg-green-400 text-white flex items-center justify-center gap-2 relative overflow-hidden">
+                <span class="relative z-10">Go! 出发! 🚀</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const body = document.body;
+        const backdrop = document.getElementById('modal-backdrop');
+        const content = document.getElementById('modal-content');
+        const modalTitle = document.getElementById('modal-title');
+        const modalDesc = document.getElementById('modal-desc');
+        const modalIcon = document.getElementById('modal-icon');
+        const modalIconBg = document.getElementById('modal-icon-bg');
+        const modalBtn = document.getElementById('modal-btn');
+        const musicBtn = document.getElementById('music-btn');
+        const musicIcon = document.getElementById('music-icon');
+
+        // --- 简易音乐合成器 (Web Audio API) ---
+        let audioCtx = null;
+        let isPlaying = false; // UI显示状态
+        let isInitialized = false; // 真实音频环境状态
+        let nextNoteTime = 0;
+        let timerID = null;
+        let noteIndex = 0;
+
+        // Twinkle Twinkle Little Star 简谱 (1=C)
+        const notes = [
+            {f: 261.63, d: 0.5}, {f: 261.63, d: 0.5}, {f: 392.00, d: 0.5}, {f: 392.00, d: 0.5}, 
+            {f: 440.00, d: 0.5}, {f: 440.00, d: 0.5}, {f: 392.00, d: 1.0},
+            {f: 349.23, d: 0.5}, {f: 349.23, d: 0.5}, {f: 329.63, d: 0.5}, {f: 329.63, d: 0.5}, 
+            {f: 293.66, d: 0.5}, {f: 293.66, d: 0.5}, {f: 261.63, d: 1.0},
+            {f: 392.00, d: 0.5}, {f: 392.00, d: 0.5}, {f: 349.23, d: 0.5}, {f: 349.23, d: 0.5}, 
+            {f: 329.63, d: 0.5}, {f: 329.63, d: 0.5}, {f: 293.66, d: 1.0},
+            {f: 392.00, d: 0.5}, {f: 392.00, d: 0.5}, {f: 349.23, d: 0.5}, {f: 349.23, d: 0.5}, 
+            {f: 329.63, d: 0.5}, {f: 329.63, d: 0.5}, {f: 293.66, d: 1.0},
+            {f: 261.63, d: 0.5}, {f: 261.63, d: 0.5}, {f: 392.00, d: 0.5}, {f: 392.00, d: 0.5}, 
+            {f: 440.00, d: 0.5}, {f: 440.00, d: 0.5}, {f: 392.00, d: 1.0},
+            {f: 349.23, d: 0.5}, {f: 349.23, d: 0.5}, {f: 329.63, d: 0.5}, {f: 329.63, d: 0.5}, 
+            {f: 293.66, d: 0.5}, {f: 293.66, d: 0.5}, {f: 261.63, d: 1.0},
+        ];
+
+        // 初始化音频环境 - 必须在用户点击事件中调用
+        function tryInitAudio() {
+            if (isInitialized) return;
+
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+
+                audioCtx = new AudioContext();
+                
+                // 在 iOS 上，仅仅 new 是不够的，必须 resume
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                isInitialized = true;
+                
+                // 默认 UI 是开启状态，所以一初始化就播放
+                isPlaying = true; 
+                nextNoteTime = audioCtx.currentTime + 0.1;
+                playNote();
+                
+                // 移除监听，避免重复
+                document.removeEventListener('click', tryInitAudio);
+                document.removeEventListener('touchstart', tryInitAudio);
+            } catch (e) {
+                console.error("Audio init failed", e);
+            }
+        }
+
+        // 手动切换音乐按钮
+        function toggleMusic(event) {
+            event.stopPropagation();
+            
+            // 如果还没初始化，这里也是一个用户点击事件，可以初始化
+            if (!isInitialized) {
+                tryInitAudio();
+                return;
+            }
+
+            if (isPlaying) {
+                // 暂停
+                if (audioCtx.state === 'running') {
+                    audioCtx.suspend();
+                }
+                isPlaying = false;
+                musicIcon.textContent = '🔇';
+                musicIcon.classList.add('grayscale', 'opacity-50');
+                musicBtn.classList.remove('music-playing');
+            } else {
+                // 播放
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                // 重置时间防止赶拍子
+                nextNoteTime = audioCtx.currentTime + 0.1;
+                playNote();
+                isPlaying = true;
+                musicIcon.textContent = '🎵';
+                musicIcon.classList.remove('grayscale', 'opacity-50');
+                musicBtn.classList.add('music-playing');
+            }
+        }
+
+        function playNote() {
+            if (!isPlaying || !audioCtx) return;
+
+            // 如果时间落后太多（比如切后台），重置时间
+            if (nextNoteTime < audioCtx.currentTime) {
+                nextNoteTime = audioCtx.currentTime + 0.1;
+            }
+
+            // 调度音符
+            while (nextNoteTime < audioCtx.currentTime + 0.1) {
+                scheduleNote(notes[noteIndex], nextNoteTime);
+                nextNoteTime += notes[noteIndex].d;
+                noteIndex = (noteIndex + 1) % notes.length;
+            }
+            
+            timerID = requestAnimationFrame(playNote);
+        }
+
+        function scheduleNote(note, time) {
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = 'sine'; 
+            osc.frequency.value = note.f;
+
+            // 稍微提高一点音量 (0.1 -> 0.15)
+            gainNode.gain.setValueAtTime(0, time);
+            gainNode.gain.linearRampToValueAtTime(0.15, time + 0.05); 
+            gainNode.gain.exponentialRampToValueAtTime(0.001, time + note.d - 0.05);
+
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            osc.start(time);
+            osc.stop(time + note.d);
+        }
+
+        // 页面加载时添加全局监听器，等待用户第一次点击
+        window.addEventListener('DOMContentLoaded', () => {
+            // 一次性监听器：只要有点按，就尝试启动音频
+            document.addEventListener('click', tryInitAudio, {once:true});
+            document.addEventListener('touchstart', tryInitAudio, {once:true});
+        });
+
+
+        // --- 模态框逻辑 (保持不变) ---
+        function openModal(title, desc, colorClass, borderClass) {
+            body.classList.add('modal-open');
+
+            modalTitle.textContent = title;
+            modalDesc.textContent = desc;
+            
+            const colorBase = colorClass.replace('bg-', ''); 
+            
+            modalIconBg.className = `w-24 h-24 md:w-32 md:h-32 rounded-full mx-auto mb-6 flex items-center justify-center border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] ${colorClass}`;
+            
+            modalBtn.className = `w-full text-2xl md:text-3xl py-4 rounded-2xl font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-x-[4px] active:translate-y-[4px] active:shadow-none ${colorClass} text-white flex items-center justify-center gap-2 relative overflow-hidden`;
+
+            if (title.includes('英语')) modalIcon.textContent = '🦜';
+            else if (title.includes('太空')) modalIcon.textContent = '👨‍🚀';
+            else if (title.includes('连连看')) modalIcon.textContent = '🧩';
+            else if (title.includes('机器')) modalIcon.textContent = '🤖';
+            else if (title.includes('爱')) modalIcon.textContent = '💌';
+            else modalIcon.textContent = '🎉';
+
+            backdrop.classList.remove('hidden');
+            void backdrop.offsetWidth; 
+            backdrop.classList.remove('opacity-0');
+            content.classList.remove('scale-90', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }
+
+        function closeModal() {
+            body.classList.remove('modal-open');
+            backdrop.classList.add('opacity-0');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-90', 'opacity-0');
+            setTimeout(() => { backdrop.classList.add('hidden'); }, 300);
+        }
+
+        function enterPage() {
+            const btn = event.currentTarget;
+            const span = btn.querySelector('span');
+            const originalText = span.textContent;
+            
+            span.textContent = "启动引擎... 💨";
+            btn.classList.add('grayscale');
+            
+            setTimeout(() => {
+                span.textContent = originalText;
+                btn.classList.remove('grayscale');
+                closeModal();
+            }, 1500);
+        }
+
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) closeModal();
+        });
+    </script>
+</body>
+</html>

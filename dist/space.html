@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>太空大逃亡 - 偏转飞行</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 1. 全局样式和深色背景 */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000000; /* 纯黑背景 */
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+        }
+        
+        /* 2. 游戏画布 */
+        #gameCanvas {
+            background-color: #000000; /* 纯黑背景 */
+            border: 2px solid #0f172a; /* 极简边框 */
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+            touch-action: none; /* 禁用默认触摸滚动和缩放 */
+            width: 100%;
+            height: 600px; /* 固定高度 */
+            max-width: 500px; 
+            
+            /* 3. 自定义鼠标样式 - 红色十字准线 */
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="red" opacity="0.8"/><line x1="12" y1="0" x2="12" y2="24" stroke="red" stroke-width="1.5" opacity="0.6"/><line x1="0" y1="12" x2="24" y2="12" stroke="red" stroke-width="1.5" opacity="0.6"/></svg>') 12 12, crosshair;
+        }
+
+        /* 4. UI 按钮和面板 - 保持简约、暗调风格 */
+        .ui-panel {
+            background-color: #1a1a1a;
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+        .btn-game {
+            background-color: #d946ef; /* 紫色调 */
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 8px;
+            transition: background-color 0.2s, transform 0.1s;
+            font-weight: 600;
+            white-space: nowrap; 
+        }
+        .btn-game:hover {
+            background-color: #c026d3;
+        }
+        .btn-game:active {
+            transform: scale(0.98);
+        }
+        
+        /* 5. 难度按钮特殊样式 */
+        .btn-difficulty-item {
+            width: 100%;
+            text-align: center;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- 增加最大宽度以适应侧边栏 -->
+    <div class="w-full max-w-4xl flex flex-col items-center">
+        <h1 class="text-3xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-gray-500">
+            🌌 太空大逃亡
+        </h1>
+        <p class="text-xs text-gray-500 mb-6">星海漫游 • 偏转挑战</p>
+
+        <!-- 主游戏区布局: 难度面板 (左) | 游戏画布 (中) -->
+        <div class="w-full flex flex-col md:flex-row gap-4 justify-center items-stretch">
+            
+            <!-- 1. 难度选择器 (左侧) -->
+            <div id="difficultyPanel" class="ui-panel w-full md:w-40 flex flex-row md:flex-col justify-around md:justify-start gap-3 p-4">
+                <p class="text-gray-400 font-semibold text-sm mb-2 text-center md:text-left">⚔️ 难度选择:</p>
+                <button data-difficulty="low" class="btn-difficulty btn-game bg-green-700 hover:bg-green-800 btn-difficulty-item">低 (Relax)</button>
+                <button data-difficulty="medium" class="btn-difficulty btn-game bg-yellow-700 hover:bg-yellow-800 btn-difficulty-item border-2 border-yellow-300">中 (Standard)</button>
+                <button data-difficulty="high" class="btn-difficulty btn-game bg-red-700 hover:bg-red-800 btn-difficulty-item">高 (Extreme)</button>
+            </div>
+
+            <!-- 2. 游戏画布与控制区 (右侧/主体) -->
+            <div class="w-full md:max-w-lg flex flex-col items-center">
+                
+                <!-- 游戏状态/信息面板 -->
+                <div class="ui-panel w-full flex justify-between text-xs font-mono mb-4">
+                    <div id="scoreDisplay" class="text-cyan-400">距离: 0.00 LY</div>
+                    <div id="timeDisplay" class="text-green-400">时间: 0.00 s</div>
+                    <div id="statusMessage" class="text-gray-400 font-bold">按开始键飞行</div>
+                </div>
+
+                <!-- 游戏画布 -->
+                <canvas id="gameCanvas" width="500" height="600" class="rounded-xl mb-6"></canvas>
+
+                <!-- 按钮区 -->
+                <div class="flex flex-wrap justify-center gap-4 mb-8">
+                    <button id="startButton" class="btn-game bg-sky-600 hover:bg-sky-700">
+                        开始游戏 / 重新开始
+                    </button>
+                    <!-- 音乐按钮 -->
+                    <button id="musicButton" class="btn-game bg-purple-600 hover:bg-purple-700">
+                        播放进行曲 🔊
+                    </button>
+                    <button id="logButton" class="btn-game bg-gray-600 hover:bg-gray-700">
+                        航行日志 (星图)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 航行日志 Modal -->
+        <div id="logModal" class="hidden fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center p-4">
+            <div class="ui-panel bg-gray-900 rounded-xl w-full max-w-md border border-gray-700 p-6">
+                <h2 class="text-xl font-bold mb-4 text-sky-400">🌌 航行日志 (星图)</h2>
+                <div id="logContainer" class="max-h-72 overflow-y-auto border border-gray-800 rounded">
+                    <div class="log-header sticky top-0 bg-gray-900 border-b border-gray-700 text-sky-400 font-bold p-2 text-xs flex justify-between">
+                        <span class="w-1/4">#</span>
+                        <span class="w-1/4 text-center">距离 (LY)</span>
+                        <span class="w-1/4 text-center">耗时 (s)</span>
+                        <span class="w-1/4 text-right">时间</span>
+                    </div>
+                    <div id="logEntries">
+                        <p class="text-center text-gray-500 p-4">正在加载日志...</p>
+                    </div>
+                </div>
+                <button id="closeLogButton" class="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-lg">
+                    关闭
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Tone.js 库，用于音乐和音效生成 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Firebase Imports and Game Script -->
+    <script type="module">
+        // --- 1. Firebase 初始化与配置 ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, limit, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Canvas environment provided global variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth, userId;
+        let isAuthReady = false;
+
+        async function initFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        isAuthReady = true;
+                        // Start listening for logs after authentication
+                        if (game) listenForLogs();
+                    } else {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } else {
+                            await signInAnonymously(auth);
+                            userId = auth.currentUser?.uid || 'anonymous';
+                            isAuthReady = true;
+                            if (game) listenForLogs();
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+            }
+        }
+        
+        // --- 2. 游戏核心类与变量 ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const statusMessage = document.getElementById('statusMessage');
+        const startButton = document.getElementById('startButton');
+        const logModal = document.getElementById('logModal');
+        const logEntriesContainer = document.getElementById('logEntries');
+
+        // Global Tone.js variables
+        let soundManager;
+
+        // Game constants
+        const TARGET_DISTANCE = 100000; 
+        const SHIP_SIZE = 3; 
+        const OBSTACLE_SIZE = 15; 
+        const OBSTACLE_INTERVAL = 40; 
+        const KEY_ROTATION_STEP = 5 * (Math.PI / 180); 
+        const CONTINUOUS_ROTATION_SPEED = 0.005; 
+        const SWIPE_DEFLECTION = 15 * (Math.PI / 180); 
+        const CIRCLE_THRESHOLD = 3 * Math.PI; 
+        const FOLLOW_SPEED = 0.1; 
+
+        // Game variables
+        let game;
+        let animationFrameId;
+        let mouseX = canvas.width / 2; 
+        let mouseY = canvas.height - 80; 
+
+
+        /**
+         * Sound Manager handles all audio using Tone.js
+         */
+        class SoundManager {
+            constructor() {
+                this.isInitialized = false;
+                this.isMusicPlaying = false;
+                this.imperialSynth = null;
+                this.musicPart = null;
+                this.collisionSynth = null;
+
+                // Collision sound effect (short, sharp noise)
+                this.collisionSynth = new Tone.NoiseSynth({
+                    noise: { type: "pink" },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.3 }
+                }).toDestination();
+                this.collisionSynth.volume.value = -10; 
+            }
+
+            async init() {
+                if (this.isInitialized) return;
+                try {
+                    await Tone.start();
+                    console.log("Tone.js initialized successfully.");
+                    this.isInitialized = true;
+                    this.setupMusic();
+                } catch (e) {
+                    console.error("Failed to initialize Tone.js (Web Audio API):", e);
+                }
+            }
+
+            setupMusic() {
+                // Imperial March (Simplified)
+                Tone.Transport.bpm.value = 100;
+                
+                // 1. Synth for the theme (brass-like, square/sawtooth mix for drama)
+                this.imperialSynth = new Tone.PolySynth(Tone.DuoSynth, {
+                    volume: -15, // Keep music at a background level
+                    oscillator: { type: "square" },
+                    voice0: {
+                        oscillator: { type: "sawtooth" },
+                        envelope: { attack: 0.01, decay: 0.2, sustain: 0.5, release: 0.5 }
+                    },
+                    voice1: {
+                        oscillator: { type: "square" },
+                        envelope: { attack: 0.01, decay: 0.2, sustain: 0.5, release: 0.5 }
+                    },
+                    filter: { Q: 2, frequency: 400 },
+                    vibratoAmount: 0.2
+                }).toDestination();
+                
+                // 2. Define the notes for the iconic part (G Minor, 4/4 time, 2 measures)
+                // G3(Q), G3(Q), G3(Q), D#3(E), A#3(E), G3(Q), D#3(E), A#3(E), G3(H)
+                const themePart = [
+                    // Measure 1
+                    { time: "0:0:0", note: "G3", duration: "4n" },
+                    { time: "0:1:0", note: "G3", duration: "4n" },
+                    { time: "0:2:0", note: "G3", duration: "4n" },
+                    { time: "0:3:0", note: "D#3", duration: "8n" },
+                    { time: "0:3:2", note: "A#3", duration: "8n" },
+                    
+                    // Measure 2
+                    { time: "1:0:0", note: "G3", duration: "4n" },
+                    { time: "1:1:0", note: "D#3", duration: "8n" },
+                    { time: "1:1:2", note: "A#3", duration: "8n" },
+                    
+                    { time: "1:2:0", note: "G3", duration: "2n" }, // 2 beats
+                    
+                    // Measure 3 - Rest to create loop space
+                    { time: "2:0:0", note: null, duration: "1n" } 
+                ];
+                
+                // 3. Create a Part for the loop
+                this.musicPart = new Tone.Part((time, value) => {
+                    if (value.note) {
+                        this.imperialSynth.triggerAttackRelease(value.note, value.duration, time);
+                    }
+                }, themePart).start(0);
+                
+                this.musicPart.loop = true;
+                this.musicPart.loopEnd = "3m"; // Loop every 3 measures (12 beats)
+                
+                // Set initial state
+                this.isMusicPlaying = false;
+            }
+
+            toggleMusic() {
+                if (!this.isInitialized) {
+                    this.init().then(() => this._togglePlayback());
+                } else {
+                    this._togglePlayback();
+                }
+            }
+            
+            _togglePlayback() {
+                if (!this.musicPart) {
+                    console.error("Music setup failed. Cannot toggle playback.");
+                    return;
+                }
+                
+                if (this.isMusicPlaying) {
+                    Tone.Transport.stop();
+                    this.isMusicPlaying = false;
+                } else {
+                    Tone.Transport.start();
+                    this.isMusicPlaying = true;
+                }
+                document.getElementById('musicButton').textContent = this.isMusicPlaying ? "停止进行曲 🔇" : "播放进行曲 🔊";
+            }
+
+            playCollision() {
+                if (!this.isInitialized) return;
+                this.collisionSynth.triggerAttackRelease("4n");
+            }
+        }
+
+
+        /**
+         * Ship object
+         */
+        class Ship {
+            constructor() {
+                this.width = SHIP_SIZE;
+                this.height = SHIP_SIZE;
+                this.x = canvas.width / 2 - this.width / 2;
+                this.y = mouseY; 
+                this.angle = 0; 
+                this.rotationSpeed = 0; 
+                this.baseSpeed = 5; 
+                this.history = []; 
+            }
+
+            update() {
+                // 1. Horizontal movement: Smoothly follow mouseX
+                const targetX = mouseX - this.width / 2;
+                this.x += (targetX - this.x) * FOLLOW_SPEED;
+
+                // 2. Vertical movement: Smoothly follow mouseY
+                const targetY = mouseY - this.height / 2;
+                this.y += (targetY - this.y) * FOLLOW_SPEED;
+
+                // 3. Apply rotation speed (decelerate)
+                this.angle += this.rotationSpeed;
+                this.rotationSpeed *= 0.95; 
+
+                // 4. Position adjustment based on angle
+                const effectiveSpeed = this.baseSpeed;
+                this.x += Math.sin(this.angle) * effectiveSpeed * 0.1; 
+                
+                // 5. Record trajectory
+                this.history.push({ 
+                    x: this.x + this.width / 2, 
+                    y: this.y + this.height / 2, 
+                });
+                if (this.history.length > 80) { 
+                    this.history.shift();
+                }
+
+                // 6. Boundary limits
+                if (this.x < 0) this.x = 0;
+                if (this.x > canvas.width - this.width) this.x = canvas.width - this.width;
+                if (this.y < 0) this.y = 0; 
+                if (this.y > canvas.height - this.height) this.y = canvas.height - this.height; 
+            }
+
+            draw() {
+                ctx.fillStyle = '#ccffcc'; 
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
+
+            getBounds() {
+                // Simplified bounding box for collision detection
+                return {
+                    x: this.x,
+                    y: this.y,
+                    width: this.width,
+                    height: this.height
+                };
+            }
+        }
+
+        /**
+         * Obstacle object
+         */
+        class Obstacle {
+            constructor(difficultyMultiplier) {
+                this.size = OBSTACLE_SIZE + Math.random() * 10;
+                this.x = Math.random() * (canvas.width - this.size);
+                this.y = -this.size; 
+                // Speed multiplied by difficulty multiplier
+                this.vy = (3 + Math.random() * 2.5) * difficultyMultiplier; 
+                this.color = ['#ff4444', '#ffff00', '#00ff00', '#ff00ff', '#ff8800'][Math.floor(Math.random() * 5)]; 
+            }
+
+            update() {
+                this.y += this.vy;
+            }
+
+            draw() {
+                ctx.save();
+                
+                // Glow effect
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.color;
+
+                // Draw body
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x + this.size / 2, this.y + this.size / 2, this.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.shadowBlur = 0;
+                ctx.restore();
+            }
+
+            getBounds() {
+                return {
+                    x: this.x,
+                    y: this.y,
+                    r: this.size / 2
+                };
+            }
+        }
+        
+        /**
+         * Game Manager
+         */
+        class GameManager {
+            constructor() {
+                this.ship = new Ship();
+                this.obstacles = [];
+                this.distance = 0; 
+                this.startTime = 0;
+                this.elapsedTime = 0;
+                this.gameState = 'ready'; 
+                this.frame = 0;
+                this.obstacleTimer = 0;
+                this.distancePerFrame = TARGET_DISTANCE / (60 * 60); 
+
+                // Difficulty state
+                this.difficulty = 'medium';
+                this.difficultyMultiplier = 1.5; // Default medium difficulty
+
+                // Control state
+                this.keyState = {};
+                this.isDragging = false;
+                this.lastTouchX = 0;
+                this.lastTouchY = 0;
+                this.accumulatedAngle = 0; 
+
+                this.setupControls();
+                this.resetGame();
+            }
+
+            setDifficulty(newDifficulty) {
+                this.difficulty = newDifficulty;
+                switch (newDifficulty) {
+                    case 'low':
+                        this.difficultyMultiplier = 1.0;
+                        break;
+                    case 'medium':
+                        this.difficultyMultiplier = 1.5;
+                        break;
+                    case 'high':
+                        this.difficultyMultiplier = 2.0;
+                        break;
+                    default:
+                        this.difficultyMultiplier = 1.5;
+                }
+                console.log(`Difficulty set to ${newDifficulty} (Multiplier: ${this.difficultyMultiplier})`);
+                if (this.gameState !== 'running') {
+                    this.resetGame();
+                }
+            }
+
+            resetGame() {
+                this.obstacles = [];
+                this.distance = 0;
+                this.elapsedTime = 0;
+                this.ship = new Ship(); 
+                this.frame = 0;
+                this.obstacleTimer = 0;
+                scoreDisplay.textContent = `距离: 0.00 LY`;
+                timeDisplay.textContent = `时间: 0.00 s`;
+                statusMessage.textContent = "按开始键飞行";
+            }
+
+            startGame() {
+                if (this.gameState === 'running') return;
+                this.resetGame();
+                this.gameState = 'running';
+                this.startTime = Date.now();
+                statusMessage.textContent = "航行中... 🚀";
+                
+                if (soundManager && soundManager.isInitialized && !soundManager.isMusicPlaying) {
+                    soundManager.toggleMusic();
+                }
+
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                this.gameLoop();
+            }
+
+            endGame() {
+                if (this.gameState !== 'running') return;
+                this.gameState = 'ended';
+                cancelAnimationFrame(animationFrameId);
+                const finalTime = (Date.now() - this.startTime) / 1000;
+                
+                if (this.distance < TARGET_DISTANCE) {
+                    statusMessage.textContent = `航行中断！距离: ${this.distance.toFixed(2)} LY, 耗时: ${finalTime.toFixed(2)} s`;
+                    soundManager?.playCollision(); 
+                } else {
+                    statusMessage.textContent = `**恭喜!** 成功逃亡100,000 LY! 耗时: ${finalTime.toFixed(2)} s`;
+                }
+
+                this.saveVoyageLog(this.distance, finalTime);
+            }
+
+            update() {
+                if (this.gameState !== 'running') return;
+
+                this.frame++;
+
+                // 0. Continuous key rotation
+                if (this.keyState['arrowleft'] || this.keyState['a']) {
+                    this.ship.angle -= CONTINUOUS_ROTATION_SPEED;
+                } else if (this.keyState['arrowright'] || this.keyState['d']) {
+                    this.ship.angle += CONTINUOUS_ROTATION_SPEED;
+                }
+
+                // 1. Update ship position (including mouse follow)
+                this.ship.update();
+
+                // 2. Update distance and time
+                this.distance += this.distancePerFrame * this.difficultyMultiplier; 
+                this.elapsedTime = (Date.now() - this.startTime) / 1000;
+                scoreDisplay.textContent = `距离: ${this.distance.toFixed(2)} LY`;
+                timeDisplay.textContent = `时间: ${this.elapsedTime.toFixed(2)} s`;
+
+                // 3. Obstacle generation
+                this.obstacleTimer++;
+                const currentInterval = Math.max(20, OBSTACLE_INTERVAL - Math.floor(this.distance / 1000) * 3);
+                
+                if (this.obstacleTimer >= currentInterval) {
+                    // Create obstacle with difficulty multiplier
+                    this.obstacles.push(new Obstacle(this.difficultyMultiplier));
+                    this.obstacleTimer = 0;
+                }
+
+                // 4. Update and clean up obstacles
+                this.obstacles.forEach(obstacle => obstacle.update());
+                this.obstacles = this.obstacles.filter(obstacle => obstacle.y < canvas.height);
+
+                // 5. Collision detection
+                const shipBounds = this.ship.getBounds();
+                for (const obstacle of this.obstacles) {
+                    const obsBounds = obstacle.getBounds();
+                    
+                    const dx = shipBounds.x - (obsBounds.x + obsBounds.r);
+                    const dy = shipBounds.y - (obsBounds.y + obsBounds.r);
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < obsBounds.r + shipBounds.width / 2) 
+                    {
+                        // Collision effect
+                        this.ship.angle += (Math.random() * 0.5 - 0.25) * 2; 
+                        this.ship.rotationSpeed = (Math.random() > 0.5 ? 0.05 : -0.05) * 5; 
+
+                        this.endGame();
+                        return;
+                    }
+                }
+
+                // 6. Win condition
+                if (this.distance >= TARGET_DISTANCE) {
+                    this.distance = TARGET_DISTANCE; 
+                    this.endGame();
+                }
+            }
+
+            draw() {
+                // 1. Clear canvas and draw stars
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                this.drawStars();
+
+                // 2. Draw ship trail
+                ctx.beginPath();
+                ctx.moveTo(this.ship.history[0]?.x, this.ship.history[0]?.y);
+                
+                for (let i = 1; i < this.ship.history.length; i++) {
+                    const p = this.ship.history[i];
+                    const alpha = (i / this.ship.history.length) * 0.8;
+                    const thickness = 1 + (i / this.ship.history.length) * 1.5; 
+                    
+                    ctx.lineTo(p.x, p.y);
+                    
+                    ctx.strokeStyle = `rgba(100, 255, 200, ${alpha})`; 
+                    ctx.lineWidth = thickness;
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                }
+                
+                // 3. Draw obstacles
+                this.obstacles.forEach(obstacle => obstacle.draw());
+
+                // 4. Draw ship
+                this.ship.draw();
+            }
+
+            drawStars() {
+                const numStars = 100;
+                // Star speed affected by difficulty
+                const starSpeed = 0.5 * this.difficultyMultiplier; 
+                for (let i = 0; i < numStars; i++) {
+                    const starX = Math.floor(Math.random() * canvas.width);
+                    // Vertical position based on frame count and star speed
+                    const starY = (this.frame * starSpeed + Math.floor(Math.random() * canvas.height * 2)) % canvas.height;
+                    const opacity = 0.2 + Math.random() * 0.4;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                    ctx.fillRect(starX, starY, 1, 1);
+                }
+            }
+
+            gameLoop = () => {
+                this.update();
+                this.draw();
+                if (this.gameState === 'running') {
+                    animationFrameId = requestAnimationFrame(this.gameLoop);
+                }
+            }
+
+            setupControls() {
+                // --- Mouse movement controls ship follow ---
+                canvas.addEventListener('mousemove', (e) => {
+                    const rect = canvas.getBoundingClientRect();
+                    mouseX = e.clientX - rect.left;
+                    mouseY = e.clientY - rect.top;
+                });
+                // Touch movement controls follow
+                canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const rect = canvas.getBoundingClientRect();
+                    mouseX = e.touches[0].clientX - rect.left;
+                    mouseY = e.touches[0].clientY - rect.top;
+                });
+
+
+                // --- Keyboard controls (deflection / rotation) ---
+                document.addEventListener('keydown', (e) => {
+                    const key = e.key.toLowerCase();
+                    this.keyState[key] = true;
+
+                    if (key === 'arrowleft' || key === 'a') {
+                        this.ship.angle -= KEY_ROTATION_STEP;
+                        e.preventDefault(); 
+                    } else if (key === 'arrowright' || key === 'd') {
+                        this.ship.angle += KEY_ROTATION_STEP;
+                        e.preventDefault(); 
+                    }
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    this.keyState[e.key.toLowerCase()] = false;
+                });
+
+                // --- Mouse/Touch Deflection (circular swipe) ---
+                const startInteraction = (clientX, clientY) => {
+                    if (this.gameState !== 'running') return;
+                    this.isDragging = true;
+                    const rect = canvas.getBoundingClientRect();
+                    this.lastTouchX = clientX - rect.left;
+                    this.lastTouchY = clientY - rect.top;
+                    this.accumulatedAngle = 0;
+                };
+
+                const moveInteraction = (clientX, clientY) => {
+                    if (!this.isDragging || this.gameState !== 'running') return;
+
+                    const rect = canvas.getBoundingClientRect();
+                    const currentX = clientX - rect.left;
+                    const currentY = clientY - rect.top;
+                    
+                    const shipCenterX = this.ship.x + this.ship.width / 2;
+                    const shipCenterY = this.ship.y + this.ship.height / 2;
+                    
+                    const dx1 = this.lastTouchX - shipCenterX;
+                    const dy1 = this.lastTouchY - shipCenterY;
+                    const dx2 = currentX - shipCenterX;
+                    const dy2 = currentY - shipCenterY;
+
+                    const angle1 = Math.atan2(dy1, dx1);
+                    const angle2 = Math.atan2(dy2, dx2);
+                    let deltaAngle = angle2 - angle1;
+
+                    if (deltaAngle > Math.PI) deltaAngle -= 2 * Math.PI;
+                    if (deltaAngle < -Math.PI) deltaAngle += 2 * Math.PI;
+
+                    this.accumulatedAngle += deltaAngle;
+                    
+                    if (Math.abs(this.accumulatedAngle) >= CIRCLE_THRESHOLD) {
+                        this.ship.angle += (this.accumulatedAngle > 0 ? SWIPE_DEFLECTION : -SWIPE_DEFLECTION);
+                        this.accumulatedAngle = 0; 
+                    }
+                    
+                    this.lastTouchX = currentX;
+                    this.lastTouchY = currentY;
+                };
+
+                const endInteraction = () => {
+                    this.isDragging = false;
+                    this.accumulatedAngle = 0; 
+                };
+
+                // Mouse events (mousedown/mouseup for deflection)
+                canvas.addEventListener('mousedown', (e) => startInteraction(e.clientX, e.clientY));
+                document.addEventListener('mouseup', endInteraction); 
+
+                // Touch events 
+                canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    startInteraction(e.touches[0].clientX, e.touches[0].clientY);
+                }, {passive: false}); 
+                
+                canvas.addEventListener('touchmove', (e) => {
+                    // This listener handles the rotation tracking logic
+                    moveInteraction(e.touches[0].clientX, e.touches[0].clientY);
+                }, {passive: false});
+
+                document.addEventListener('touchend', endInteraction);
+            }
+
+            // --- Firestore Voyage Log Functionality ---
+            async saveVoyageLog(distance, duration) {
+                if (!isAuthReady || !userId) {
+                    console.warn("Auth not ready or userId missing, skipping log save.");
+                    return;
+                }
+
+                const logsCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'voyage_logs');
+
+                const logData = {
+                    distance: parseFloat(distance.toFixed(2)),
+                    duration: parseFloat(duration.toFixed(2)),
+                    difficulty: this.difficulty, // Record difficulty
+                    date: new Date().toISOString()
+                };
+
+                try {
+                    await addDoc(logsCollectionRef, logData);
+                    console.log("Voyage log saved successfully.");
+                } catch (error) {
+                    console.error("Error saving voyage log:", error);
+                }
+            }
+        }
+
+        // --- 3. UI Interaction Logic (Star Map/Voyage Log) ---
+        
+        function listenForLogs() {
+            if (!isAuthReady || !userId) {
+                logEntriesContainer.innerHTML = `<p class="text-center text-gray-500 p-4">Connecting to log system...</p>`;
+                return;
+            }
+            
+            logEntriesContainer.innerHTML = `<p class="text-center text-gray-500 p-4">Loading logs...</p>`;
+
+            const logsCollectionRef = collection(db, 'artifacts', appId, 'users', userId, 'voyage_logs');
+            
+            // Query for the latest 20 records
+            const logsQuery = query(logsCollectionRef, orderBy('date', 'desc'), limit(20));
+
+            onSnapshot(logsQuery, (snapshot) => {
+                logEntriesContainer.innerHTML = ''; 
+                let hasLogs = false;
+                let rank = 0;
+
+                snapshot.docs.forEach(doc => {
+                    hasLogs = true;
+                    rank++;
+                    const log = doc.data();
+                    const date = new Date(log.date).toLocaleString('zh-CN', {
+                        month: '2-digit', day: '2-digit',
+                        hour: '2-digit', minute: '2-digit'
+                    });
+
+                    const rankStyle = rank === 1 ? 'text-lg text-yellow-400 font-extrabold' : 'text-sm text-gray-400';
+                    const difficultyText = log.difficulty ? ` (${log.difficulty.toUpperCase()})` : '';
+
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'log-entry flex p-2 font-mono text-xs items-center border-b border-gray-800 hover:bg-gray-800 transition-colors';
+                    logEntry.innerHTML = `
+                        <span class="w-1/4 ${rankStyle}">${rank}.</span>
+                        <span class="w-1/4 text-center text-cyan-300">${log.distance.toFixed(2)}</span>
+                        <span class="w-1/4 text-center text-emerald-300">${log.duration.toFixed(2)}</span>
+                        <span class="w-1/4 text-right text-gray-500">${date} ${difficultyText}</span>
+                    `;
+                    logEntriesContainer.appendChild(logEntry);
+                });
+
+                if (!hasLogs) {
+                    logEntriesContainer.innerHTML = `<p class="text-center text-gray-500 p-4">No voyage records yet. Start your first flight!</p>`;
+                }
+            }, (error) => {
+                console.error("Error listening to logs:", error);
+                logEntriesContainer.innerHTML = `<p class="text-center text-red-500 p-4">Error loading logs!</p>`;
+            });
+        }
+
+
+        // --- 4. Startup Logic and Event Binding ---
+
+        startButton.addEventListener('click', () => {
+            if (!game) game = new GameManager();
+            game.startGame();
+        });
+        
+        // Bind music button
+        document.getElementById('musicButton').addEventListener('click', () => {
+            if (!soundManager) soundManager = new SoundManager();
+            soundManager.toggleMusic();
+        });
+
+        document.getElementById('logButton').addEventListener('click', () => {
+            logModal.classList.remove('hidden');
+            // Ensure logs are displayed on click
+            listenForLogs(); 
+        });
+
+        document.getElementById('closeLogButton').addEventListener('click', () => {
+            logModal.classList.add('hidden');
+        });
+
+        // Difficulty selection button event listener
+        document.querySelectorAll('.btn-difficulty').forEach(button => {
+            button.addEventListener('click', (e) => {
+                if (!game) return;
+                const newDifficulty = e.target.getAttribute('data-difficulty');
+                game.setDifficulty(newDifficulty);
+                
+                // Update visual state of buttons, remove border from all buttons
+                document.querySelectorAll('.btn-difficulty').forEach(btn => {
+                    btn.classList.remove('border-2', 'border-yellow-300');
+                });
+                // Add border to the currently selected button
+                e.target.classList.add('border-2', 'border-yellow-300');
+            });
+        });
+
+        // Ensure Firebase and game are initialized on window load
+        window.onload = function () {
+            initFirebase();
+            game = new GameManager();
+            soundManager = new SoundManager(); // Initialize sound manager
+            
+            // Ensure default difficulty button is selected
+            const defaultButton = document.querySelector('[data-difficulty="medium"]');
+            if(defaultButton) {
+                defaultButton.classList.add('border-2', 'border-yellow-300');
+            }
+            
+            // Listen for logs if auth is ready
+            if(isAuthReady) listenForLogs();
+        };
+
+    </script>
+</body>
+</html>
