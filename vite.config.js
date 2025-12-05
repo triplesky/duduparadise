@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['logo.png'],
       manifest: {
-        name: 'Onet Game',
-        short_name: 'Onet',
-        description: 'Onet Game PWA',
+        name: 'DUDU Paradise',
+        short_name: 'DUDU',
+        description: 'DUDU Paradise',
         theme_color: '#ffffff',
         icons: [
           {
