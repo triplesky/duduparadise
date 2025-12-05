@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -38,15 +37,16 @@
         /* UI 层 */
         #ui-layer { 
             position: absolute; inset: 0; z-index: 10; pointer-events: none;
+            display: flex; flex-direction: column; justify-content: space-between;
         }
 
         .pointer-events-auto { pointer-events: auto; }
         
         /* 玻璃拟态面板 */
         .glass-panel {
-            background: rgba(20, 20, 40, 0.6);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(20, 20, 40, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 1.5rem;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
@@ -54,7 +54,7 @@
 
         /* 模型选择按钮 */
         .shape-btn {
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
             background: rgba(255, 255, 255, 0.05);
@@ -63,19 +63,41 @@
         .shape-btn:hover { background: rgba(255, 255, 255, 0.15); transform: translateY(-2px); }
         .shape-btn:active { transform: scale(0.95); }
         .shape-btn.active {
-            background: rgba(139, 92, 246, 0.6); /* Violet-500 */
+            background: rgba(139, 92, 246, 0.5); /* Violet-500 */
             border-color: #c4b5fd;
-            box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
         }
 
         /* 颜色选择器自定义 */
         input[type="color"] {
-            -webkit-appearance: none; border: none; width: 100%; height: 32px;
-            border-radius: 8px; overflow: hidden; cursor: pointer; padding: 0;
-            box-shadow: 0 0 5px rgba(255,255,255,0.1);
+            -webkit-appearance: none; border: none; width: 36px; height: 36px;
+            border-radius: 50%; overflow: hidden; cursor: pointer; padding: 0;
+            box-shadow: 0 0 10px rgba(255,255,255,0.3);
         }
         input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-        input[type="color"]::-webkit-color-swatch { border: none; }
+        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 50%; }
+
+        /* 滑动条自定义 */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px; width: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+        }
 
         /* 加载动画 */
         .loader {
@@ -91,15 +113,6 @@
         .glow-text {
             text-shadow: 0 0 10px rgba(167, 139, 250, 0.8), 0 0 20px rgba(167, 139, 250, 0.4);
         }
-        
-        /* 动画进入效果 */
-        @keyframes fadeInLeft {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        .animate-fade-in-left {
-            animation: fadeInLeft 0.5s ease-out forwards;
-        }
     </style>
 </head>
 <body>
@@ -110,88 +123,21 @@
         <canvas id="overlayCanvas"></canvas>
         
         <!-- UI 界面 -->
-        <div id="ui-layer" class="p-4">
+        <div id="ui-layer" class="p-4 md:p-6">
             
-            <!-- 顶部栏 (包含左上角面板) -->
-            <div class="flex justify-between items-start w-full pointer-events-auto">
+            <!-- 顶部栏 -->
+            <div class="flex justify-between items-center w-full pointer-events-auto">
+                <a href="gesture_nav.html" class="glass-panel w-12 h-12 flex items-center justify-center text-2xl text-white hover:bg-white/10 transition-colors no-underline">
+                    🏠
+                </a>
                 
-                <!-- 左上角区域：返回按钮 + 控制面板 -->
-                <div class="flex flex-col gap-4">
-                    <!-- 返回按钮 -->
-                    <a href="gesture_nav.html" class="glass-panel w-12 h-12 flex items-center justify-center text-2xl text-white hover:bg-white/10 transition-colors no-underline shadow-lg z-50">
-                        🏠
-                    </a>
-
-                    <!-- 垂直控制面板 -->
-                    <div class="glass-panel p-4 w-48 flex flex-col gap-4 animate-fade-in-left">
-                        <!-- 状态指示 -->
-                        <div class="flex flex-col gap-1">
-                            <div class="text-[10px] text-purple-200 opacity-60 tracking-wider uppercase">Status</div>
-                            <div id="gestureStatus" class="text-xs font-bold text-white flex items-center gap-2 bg-black/30 px-3 py-2 rounded-lg border border-white/5">
-                                <span class="w-2 h-2 rounded-full bg-gray-500 flex-shrink-0" id="statusDot"></span>
-                                <span id="statusText">Searching...</span>
-                            </div>
-                        </div>
-
-                        <div class="h-[1px] w-full bg-white/10"></div>
-
-                        <!-- 颜色选择 -->
-                        <div class="flex flex-col gap-1">
-                            <span class="text-[10px] text-gray-400 font-bold">粒子颜色</span>
-                            <input type="color" id="colorPicker" value="#a78bfa" class="transition-transform hover:scale-[1.02]">
-                        </div>
-
-                        <div class="h-[1px] w-full bg-white/10"></div>
-
-                        <!-- 模型选择网格 -->
-                        <div class="flex flex-col gap-1">
-                            <span class="text-[10px] text-gray-400 font-bold mb-1">切换模型</span>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button onclick="setShape('heart')" id="btn-heart" class="shape-btn active rounded-xl py-2 flex flex-col items-center gap-1">
-                                    <span class="text-xl">❤️</span>
-                                    <span class="text-[10px] font-bold text-gray-200">爱心</span>
-                                </button>
-                                <button onclick="setShape('dna')" id="btn-dna" class="shape-btn rounded-xl py-2 flex flex-col items-center gap-1">
-                                    <span class="text-xl">🧬</span>
-                                    <span class="text-[10px] font-bold text-gray-200">DNA</span>
-                                </button>
-                                <button onclick="setShape('galaxy')" id="btn-galaxy" class="shape-btn rounded-xl py-2 flex flex-col items-center gap-1">
-                                    <span class="text-xl">🌀</span>
-                                    <span class="text-[10px] font-bold text-gray-200">星系</span>
-                                </button>
-                                <button onclick="setShape('saturn')" id="btn-saturn" class="shape-btn rounded-xl py-2 flex flex-col items-center gap-1">
-                                    <span class="text-xl">🪐</span>
-                                    <span class="text-[10px] font-bold text-gray-200">土星</span>
-                                </button>
-                                <button onclick="setShape('sphere')" id="btn-sphere" class="shape-btn rounded-xl py-2 flex flex-col items-center gap-1">
-                                    <span class="text-xl">🔮</span>
-                                    <span class="text-[10px] font-bold text-gray-200">球体</span>
-                                </button>
-                                <button onclick="setShape('atom')" id="btn-atom" class="shape-btn rounded-xl py-2 flex flex-col items-center gap-1">
-                                    <span class="text-xl">⚛️</span>
-                                    <span class="text-[10px] font-bold text-gray-200">原子</span>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- 提示信息 -->
-                        <div class="text-[9px] text-white/30 mt-1 leading-tight">
-                            👋 拖动: 移动手掌<br>
-                            🔄 旋转: 左右倾斜手掌<br>
-                            ✊ 缩放: 张开/握紧
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 标题区 (绝对定位居中) -->
-                <div class="absolute left-1/2 -translate-x-1/2 top-6 text-center pointer-events-none">
-                    <h1 class="text-4xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 font-bold glow-text">
-                        粒子魔法
+                <div class="text-center md:absolute md:left-1/2 md:-translate-x-1/2">
+                    <h1 class="text-3xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 font-bold glow-text">
+                        Gemini 魔法
                     </h1>
                 </div>
 
-                <!-- 全屏按钮 -->
-                <button onclick="toggleFullScreen()" class="glass-panel w-12 h-12 flex items-center justify-center text-xl text-white hover:bg-white/10 transition-colors" title="全屏模式">
+                <button onclick="toggleFullScreen()" class="glass-panel w-12 h-12 flex items-center justify-center text-xl text-white hover:bg-white/10 transition-colors">
                     ⛶
                 </button>
             </div>
@@ -200,7 +146,70 @@
             <div id="loading" class="absolute inset-0 flex flex-col items-center justify-center bg-black/95 z-50 pointer-events-auto transition-opacity duration-500">
                 <div class="loader mb-6"></div>
                 <div class="text-2xl text-purple-300 font-bold mb-2">正在启动粒子引擎...</div>
-                <div class="text-sm text-gray-400">请允许摄像头权限</div>
+                <div class="text-sm text-gray-400">请允许摄像头权限 • 使用 GPU 加速</div>
+            </div>
+
+            <!-- 底部控制面板 -->
+            <div class="flex justify-center w-full pointer-events-auto mt-auto">
+                <div class="glass-panel p-4 w-full max-w-4xl flex flex-col md:flex-row gap-6 items-center justify-between">
+                    
+                    <!-- 左侧：状态与控制 -->
+                    <div class="flex items-center gap-6 w-full md:w-auto justify-center md:justify-start">
+                        <!-- 颜色选择 -->
+                        <div class="flex flex-col items-center gap-1 group cursor-pointer" title="粒子颜色">
+                            <div class="relative w-10 h-10 rounded-full hover:scale-110 transition-transform">
+                                <div class="absolute inset-0 rounded-full animate-pulse bg-white/20"></div>
+                                <input type="color" id="colorPicker" value="#8b5cf6" class="relative z-10">
+                            </div>
+                        </div>
+
+                        <!-- 回弹系数滑块 (修改标题以匹配功能) -->
+                        <div class="flex flex-col w-24 gap-1">
+                            <div class="flex justify-between text-[10px] text-gray-300 font-bold uppercase">
+                                <span>无回弹</span>
+                                <span>Q弹</span>
+                            </div>
+                            <!-- 默认值改为 0.5 -->
+                            <input type="range" id="bounceSlider" min="0" max="1" step="0.01" value="0.5" title="调整回弹幅度">
+                        </div>
+                        
+                        <div class="h-10 w-[1px] bg-white/20"></div>
+                        
+                        <!-- 状态指示 -->
+                        <div class="text-left min-w-[80px]">
+                            <div class="text-xs text-purple-200 opacity-70 mb-1 tracking-wider">STATUS</div>
+                            <div id="gestureStatus" class="text-base font-bold text-white flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse" id="statusDot"></span>
+                                等待...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：模型选择网格 -->
+                    <div class="flex gap-3 overflow-x-auto w-full md:justify-end pb-2 md:pb-0 no-scrollbar items-center">
+                        <button onclick="setShape('heart')" id="btn-heart" class="shape-btn active border border-white/10 rounded-2xl px-3 py-3 min-w-[70px] flex flex-col items-center gap-1">
+                            <span class="text-2xl">❤️</span>
+                            <span class="text-xs font-bold text-gray-200">爱心</span>
+                        </button>
+                        <button onclick="setShape('galaxy')" id="btn-galaxy" class="shape-btn border border-white/10 rounded-2xl px-3 py-3 min-w-[70px] flex flex-col items-center gap-1">
+                            <span class="text-2xl">🌀</span>
+                            <span class="text-xs font-bold text-gray-200">星系</span>
+                        </button>
+                        <button onclick="setShape('saturn')" id="btn-saturn" class="shape-btn border border-white/10 rounded-2xl px-3 py-3 min-w-[70px] flex flex-col items-center gap-1">
+                            <span class="text-2xl">🪐</span>
+                            <span class="text-xs font-bold text-gray-200">土星</span>
+                        </button>
+                        <button onclick="setShape('atom')" id="btn-atom" class="shape-btn border border-white/10 rounded-2xl px-3 py-3 min-w-[70px] flex flex-col items-center gap-1">
+                            <span class="text-2xl">⚛️</span>
+                            <span class="text-xs font-bold text-gray-200">原子</span>
+                        </button>
+                         <button onclick="setShape('infinity')" id="btn-infinity" class="shape-btn border border-white/10 rounded-2xl px-3 py-3 min-w-[70px] flex flex-col items-center gap-1">
+                            <span class="text-2xl">♾️</span>
+                            <span class="text-xs font-bold text-gray-200">无限</span>
+                        </button>
+                    </div>
+
+                </div>
             </div>
         </div>
     </div>
@@ -211,28 +220,29 @@
 
         // === 1. 全局配置与状态 ===
         const config = {
-            particleCount: 15000,
-            particleSize: 0.2,
-            baseColor: new THREE.Color('#a78bfa'),
+            particleCount: 12000, 
+            particleSize: 0.25,   
+            baseColor: new THREE.Color('#a78bfa'), 
         };
 
         const state = {
             currentShape: 'heart',
-            handOpenness: 1.0, // 0 (Closed) -> 1 (Open)
+            handOpenness: 1.0, // 0 (握拳/打散) - 1 (张开/聚合)
+            isGripping: false, // 是否握拳
             handPosition: new THREE.Vector3(0, 0, 0),
-            handRotationZ: 0, // 手势控制 Z 轴旋转
-            hasHand: false,
-            targetScale: 1.0
+            handRotation: new THREE.Quaternion(),
+            hasHand: false
         };
 
-        // DOM Elements
+        // DOM
         const video = document.getElementById('videoElement');
         const overlayCanvas = document.getElementById('overlayCanvas');
         const overlayCtx = overlayCanvas.getContext('2d');
         const loadingScreen = document.getElementById('loading');
-        const statusText = document.getElementById('statusText');
+        const gestureStatus = document.getElementById('gestureStatus');
         const statusDot = document.getElementById('statusDot');
         const colorPicker = document.getElementById('colorPicker');
+        const bounceSlider = document.getElementById('bounceSlider');
 
         // === 2. MediaPipe 初始化 ===
         let handLandmarker = null;
@@ -256,7 +266,7 @@
                 startCamera();
             } catch (error) {
                 console.error("MediaPipe Init Error:", error);
-                loadingScreen.innerHTML = `<div class='text-red-400'>引擎启动失败<br>${error.message}</div>`;
+                loadingScreen.innerHTML = `<div class='text-red-400'>初始化失败<br>${error.message}</div>`;
             }
         }
 
@@ -273,11 +283,11 @@
                 });
             } catch (error) {
                 console.error("Camera Error:", error);
-                alert("需要摄像头权限来捕捉手势。");
+                alert("请允许访问摄像头以使用手势控制功能。");
             }
         }
 
-        // === 3. Three.js 粒子系统 ===
+        // === 3. Three.js 高级粒子系统 ===
         let scene, camera, renderer, particles;
         let positions, velocities, targetPositions;
         let particleGeometry;
@@ -297,8 +307,7 @@
         function initThreeJS() {
             const canvas = document.getElementById('threeCanvas');
             scene = new THREE.Scene();
-            scene.fog = new THREE.FogExp2(0x050510, 0.02); 
-            
+            scene.fog = new THREE.FogExp2(0x050510, 0.015);
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.z = 35;
 
@@ -312,7 +321,7 @@
             targetPositions = new Float32Array(count * 3);
 
             for (let i = 0; i < count * 3; i++) {
-                positions[i] = (Math.random() - 0.5) * 50;
+                positions[i] = (Math.random() - 0.5) * 100;
                 velocities[i] = 0;
             }
 
@@ -324,7 +333,7 @@
                 size: config.particleSize,
                 map: createCrystalTexture(),
                 transparent: true,
-                opacity: 0.8, 
+                opacity: 0.9, 
                 blending: THREE.NormalBlending, 
                 depthWrite: false,
                 sizeAttenuation: true
@@ -336,7 +345,8 @@
             calculateTargetShape('heart');
             
             colorPicker.addEventListener('input', (e) => {
-                particles.material.color.set(e.target.value);
+                const c = new THREE.Color(e.target.value);
+                particles.material.color.set(c);
             });
 
             window.addEventListener('resize', onWindowResize);
@@ -350,7 +360,7 @@
             overlayCanvas.height = window.innerHeight;
         }
 
-        // === 4. 形状生成算法 ===
+        // === 4. 形状数学生成 ===
         function calculateTargetShape(shapeType) {
             state.currentShape = shapeType;
             
@@ -358,77 +368,64 @@
             document.getElementById(`btn-${shapeType}`).classList.add('active');
 
             const count = config.particleCount;
+            const scale = 1.0; 
+
             let pts = [];
 
             if (shapeType === 'heart') {
+                // 空心霓虹心形 (Hollow Outline/Tube)
+                // 确保心形是按照截图中的轮廓生成，而不是实心
                 for (let i = 0; i < count; i++) {
-                    const t = Math.random() * Math.PI * 2;
-                    let hx = 16 * Math.pow(Math.sin(t), 3);
-                    let hy = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                    // 主轮廓 t
+                    const t = (i / count) * Math.PI * 2 * 15; // 增加循环密度
+                    const t_mod = t % (Math.PI * 2);
+                    
+                    // 心形方程
+                    let hx = 16 * Math.pow(Math.sin(t_mod), 3);
+                    let hy = 13 * Math.cos(t_mod) - 5 * Math.cos(2*t_mod) - 2 * Math.cos(3*t_mod) - Math.cos(4*t_mod);
                     let hz = 0;
-                    const r = Math.random() * 1.5; 
-                    const theta = Math.random() * Math.PI * 2;
-                    hx += r * Math.cos(theta);
-                    hy += r * Math.sin(theta);
-                    hz += (Math.random()-0.5) * 3; 
-                    pts.push(hx * 0.8, (hy + 2) * 0.8, hz * 0.8); 
-                }
-            } else if (shapeType === 'dna') {
-                for (let i = 0; i < count; i++) {
-                    const t = (i / count) * Math.PI * 8;
-                    const radius = 6;
-                    const height = 24;
-                    const y = (i / count - 0.5) * height;
-                    if (i % 2 === 0) {
-                        pts.push(Math.cos(t) * radius, y, Math.sin(t) * radius);
-                    } else {
-                        pts.push(Math.cos(t + Math.PI) * radius, y, Math.sin(t + Math.PI) * radius);
-                    }
-                    if (Math.random() > 0.8) {
-                        pts[pts.length-3] *= Math.random();
-                        pts[pts.length-1] *= Math.random();
-                    }
-                }
-            } else if (shapeType === 'sphere') {
-                for (let i = 0; i < count; i++) {
-                    const phi = Math.acos(-1 + (2 * i) / count);
-                    const theta = Math.sqrt(count * Math.PI) * phi;
-                    const r = 10 + (Math.random()-0.5)*0.5;
-                    pts.push(
-                        r * Math.cos(theta) * Math.sin(phi),
-                        r * Math.sin(theta) * Math.sin(phi),
-                        r * Math.cos(phi)
-                    );
+
+                    // 在轮廓线上添加随机抖动，形成管状厚度
+                    const thickness = 1.5; 
+                    const randAngle = Math.random() * Math.PI * 2;
+                    const r = Math.random() * thickness;
+                    
+                    hx += r * Math.cos(randAngle);
+                    hy += r * Math.sin(randAngle);
+                    hz += (Math.random() - 0.5) * thickness * 2;
+
+                    const s = 0.8; 
+                    pts.push(hx * s, (hy + 2) * s, hz * s); 
                 }
             } else {
                 for (let i = 0; i < count; i++) {
                     let x, y, z;
                     switch (shapeType) {
                         case 'galaxy': {
-                            const arms = 5;
+                            const arms = 3;
                             const armAngle = (Math.random() * Math.PI * 2 * arms); 
-                            const distance = Math.pow(Math.random(), 2) * 18;
-                            const angle = armAngle + distance * 0.4;
+                            const distance = Math.pow(Math.random(), 2) * 15;
+                            const angle = armAngle + distance * 0.5;
                             x = Math.cos(angle) * distance;
-                            y = (Math.random() - 0.5) * (10 / (distance + 0.1));
+                            y = (Math.random() - 0.5) * (15 / (distance + 1));
                             z = Math.sin(angle) * distance;
                             break;
                         }
                         case 'saturn': {
-                            const ratio = 0.35;
+                            const ratio = 0.4;
                             if (i < count * ratio) {
                                 const u = Math.random() * Math.PI * 2;
                                 const v = Math.acos(2 * Math.random() - 1);
-                                const r = 5.5;
+                                const r = 6;
                                 x = r * Math.sin(v) * Math.cos(u);
                                 y = r * Math.sin(v) * Math.sin(u);
                                 z = r * Math.cos(v);
                             } else {
                                 const angle = Math.random() * Math.PI * 2;
-                                const r = 8 + Math.random() * 7; 
+                                const r = 9 + Math.random() * 8; 
                                 x = r * Math.cos(angle);
                                 z = r * Math.sin(angle);
-                                y = (Math.random() - 0.5) * 0.2;
+                                y = (Math.random() - 0.5) * 0.3;
                             }
                             const tilt = 0.4;
                             const ty = y * Math.cos(tilt) - z * Math.sin(tilt);
@@ -437,11 +434,11 @@
                             break;
                         }
                         case 'atom': {
-                            const ratio = 0.15;
+                            const ratio = 0.2;
                             if (i < count * ratio) {
                                 const u = Math.random() * Math.PI * 2;
                                 const v = Math.acos(2 * Math.random() - 1);
-                                const r = 2.5;
+                                const r = 3;
                                 x = r * Math.sin(v) * Math.cos(u);
                                 y = r * Math.sin(v) * Math.sin(u);
                                 z = r * Math.cos(v);
@@ -451,20 +448,28 @@
                                 const r = 12;
                                 let bx = r * Math.cos(angle);
                                 let by = r * Math.sin(angle);
-                                let bz = (Math.random()-0.5) * 0.5;
+                                let bz = (Math.random()-0.5) * 1;
                                 if (orbit === 0) { x = bx; y = by; z = bz; }
-                                else if (orbit === 1) { x = bx * 0.5 - bz * 0.866; z = bx * 0.866 + bz * 0.5; y = by; } 
-                                else { x = bx; y = by * 0.5 - bz * 0.866; z = by * 0.866 + bz * 0.5; }
+                                else if (orbit === 1) { 
+                                    x = bx * 0.5 - bz * 0.866;
+                                    z = bx * 0.866 + bz * 0.5;
+                                    y = by;
+                                } else {
+                                    x = bx;
+                                    y = by * 0.5 - bz * 0.866;
+                                    z = by * 0.866 + bz * 0.5;
+                                }
                             }
                             break;
                         }
                         case 'infinity': {
                             const t = Math.random() * Math.PI * 2;
-                            const tube = (Math.random() - 0.5) * 2.0;
-                            const s = 13;
+                            const tube = (Math.random() - 0.5) * 1.5;
+                            const s = 12;
                             x = (s * Math.cos(t)) / (1 + Math.sin(t)*Math.sin(t));
                             y = (s * Math.cos(t) * Math.sin(t)) / (1 + Math.sin(t)*Math.sin(t));
                             z = tube;
+                            x += (Math.random()-0.5); y += (Math.random()-0.5);
                             break;
                         }
                     }
@@ -473,9 +478,9 @@
             }
 
             for (let i = 0; i < count; i++) {
-                targetPositions[i*3]   = pts[i*3];
-                targetPositions[i*3+1] = pts[i*3+1];
-                targetPositions[i*3+2] = pts[i*3+2];
+                targetPositions[i*3]   = pts[i*3] * scale;
+                targetPositions[i*3+1] = pts[i*3+1] * scale;
+                targetPositions[i*3+2] = pts[i*3+2] * scale;
             }
         }
 
@@ -485,7 +490,7 @@
             else if (document.exitFullscreen) document.exitFullscreen();
         };
 
-        // === 5. 物理引擎与渲染 ===
+        // === 5. 渲染循环 (物理引擎) ===
         function renderLoop() {
             requestAnimationFrame(renderLoop);
             processHandGesture();
@@ -504,58 +509,49 @@
                 if (result.landmarks.length > 0) {
                     state.hasHand = true;
                     const landmarks = result.landmarks[0];
-                    
                     drawSkeleton(overlayCtx, landmarks);
                     updateHandPosition3D(landmarks);
 
-                    // === 1. 手势张合度 (缩放) ===
+                    // === 手势识别 ===
                     const wrist = landmarks[0];
                     const middleBase = landmarks[9];
                     const palmSize = Math.hypot(middleBase.x - wrist.x, middleBase.y - wrist.y);
                     
                     const tips = [4, 8, 12, 16, 20]; 
                     let tipsDist = 0;
-                    tips.forEach(i => tipsDist += Math.hypot(landmarks[i].x - wrist.x, landmarks[i].y - wrist.y));
+                    tips.forEach(i => {
+                        tipsDist += Math.hypot(landmarks[i].x - wrist.x, landmarks[i].y - wrist.y);
+                    });
                     const avgTipDist = tipsDist / 5;
 
                     const rawRatio = avgTipDist / (palmSize || 0.1);
-                    const minRatio = 0.8; 
-                    const maxRatio = 1.8;
+
+                    // --- CALIBRATION ---
+                    const minRatio = 0.8;
+                    const maxRatio = 1.7;
+
                     let normalized = (rawRatio - minRatio) / (maxRatio - minRatio);
                     normalized = Math.max(0, Math.min(1, normalized)); 
 
                     if (normalized > 0.8) normalized = 1.0; 
                     else if (normalized < 0.2) normalized = 0.0; 
-                    state.handOpenness = THREE.MathUtils.lerp(state.handOpenness, normalized, 0.2);
 
-                    // === 2. 手势旋转控制 (Z轴) ===
-                    // 计算手腕到中指根部的角度
-                    const dx = middleBase.x - wrist.x;
-                    const dy = middleBase.y - wrist.y;
-                    // MediaPipe Y轴向下，需要调整坐标系
-                    // 正常竖直手势角度约为 -PI/2
-                    const angle = Math.atan2(dy, dx);
-                    // 目标旋转：手势倾斜角度 + 90度 (使竖直时旋转为0)
-                    // 取反是因为 Canvas 镜像
-                    const targetRotZ = -(angle + Math.PI/2); 
-                    
-                    state.handRotationZ = THREE.MathUtils.lerp(state.handRotationZ, targetRotZ, 0.1);
+                    state.handOpenness = normalized;
+                    state.isGripping = state.handOpenness < 0.2;
 
-                    // UI 更新
                     const percent = Math.round(state.handOpenness * 100);
-                    statusDot.className = "w-2 h-2 rounded-full " + (percent < 20 ? "bg-red-500 shadow-[0_0_10px_red]" : "bg-green-400 shadow-[0_0_10px_lime]");
-                    statusText.innerHTML = percent < 20 
-                        ? `<span class="text-red-300">收缩 (${percent}%)</span>` 
-                        : `<span class="text-green-300">扩散 (${percent}%)</span>`;
+                    statusDot.className = state.isGripping ? "w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_red]" : "w-3 h-3 rounded-full bg-green-400 shadow-[0_0_10px_lime]";
+                    gestureStatus.innerHTML = state.isGripping 
+                        ? `<span class="text-red-300">打散 (${percent}%)</span>` 
+                        : `<span class="text-green-300">聚合 (${percent}%)</span>`;
 
                 } else {
                     state.hasHand = false;
-                    state.handOpenness = THREE.MathUtils.lerp(state.handOpenness, 1.0, 0.05);
+                    state.handOpenness = 1.0; // 默认张开
+                    state.isGripping = false;
                     state.handPosition.lerp(new THREE.Vector3(0,0,0), 0.05);
-                    // 无手时回正
-                    state.handRotationZ = THREE.MathUtils.lerp(state.handRotationZ, 0, 0.05);
                     statusDot.className = "w-2 h-2 rounded-full bg-gray-500";
-                    statusText.textContent = "等待手势...";
+                    gestureStatus.textContent = "未检测到手";
                 }
             }
         }
@@ -567,14 +563,19 @@
             const cy = (wrist.y + middle.y) / 2;
             const ndcX = (1 - cx) * 2 - 1; 
             const ndcY = -(cy * 2 - 1);
-            
             const vector = new THREE.Vector3(ndcX, ndcY, 0.5);
             vector.unproject(camera);
             const dir = vector.sub(camera.position).normalize();
             const distance = -camera.position.z / dir.z; 
             const targetPos = camera.position.clone().add(dir.multiplyScalar(distance));
-            
             state.handPosition.lerp(targetPos, 0.15);
+
+            if (state.hasHand) {
+                const dx = middle.x - wrist.x;
+                const dy = middle.y - wrist.y;
+                const angle = Math.atan2(dy, dx);
+                particles.rotation.z = THREE.MathUtils.lerp(particles.rotation.z, -angle - Math.PI/2, 0.1);
+            }
         }
 
         function updateParticlePhysics() {
@@ -582,19 +583,34 @@
             const posAttr = particles.geometry.attributes.position;
             const count = config.particleCount;
             
-            const targetScale = 0.1 + (state.handOpenness * 1.1);
-            const springStrength = 0.05 + (1.0 - state.handOpenness) * 0.05; 
-            const friction = 0.85;
-            const center = state.handPosition;
+            // === 1. 获取滑块值并映射物理参数 ===
+            const bounceInput = parseFloat(bounceSlider.value);
+            
+            // 阻尼 (Friction): 
+            // Input 0 (无回弹) -> friction 0.6 (High damping, stops fast)
+            // Input 1 (Q弹)   -> friction 0.96 (Low damping, oscillates)
+            const friction = 0.6 + (bounceInput * 0.36); 
 
-            // 应用旋转
-            if (state.hasHand) {
-                // 手势控制 Z 轴旋转
-                particles.rotation.z = state.handRotationZ;
-            } else {
-                // 无手势时自动旋转 Y 轴
-                particles.rotation.y += (state.currentShape === 'galaxy' ? 0.005 : 0.002);
-            }
+            // === 2. 握拳/张开 逻辑翻转 ===
+            // gripStrength: 0(Open) -> 1(Closed)
+            const gripStrength = 1.0 - state.handOpenness; 
+
+            // 弹力 (Spring): 
+            // Open(1.0) -> springStrength 高 -> 聚拢
+            // Closed(0.0) -> springStrength 低 -> 不聚拢，方便打散
+            const baseSpring = 0.05;
+            const springStrength = baseSpring * state.handOpenness; 
+
+            // 混沌力 (Chaos): 
+            // Open(1.0) -> chaos 0 -> 稳定
+            // Closed(0.0) -> chaos 高 -> 打散
+            const chaosLevel = gripStrength * 3.0; // 强力打散
+
+            // 目标缩放 (Target Scale): 
+            // 握拳时，模型膨胀 (Expansion)，视觉上更像“炸开”
+            const targetScale = 1.0 + (gripStrength * 1.5); 
+
+            const shapeCenterOffset = state.handPosition.clone().multiplyScalar(0.8);
 
             for (let i = 0; i < count; i++) {
                 const idx = i * 3;
@@ -603,23 +619,32 @@
                 const py = posAttr.array[idx+1];
                 const pz = posAttr.array[idx+2];
                 
-                const tx = (targetPositions[idx] * targetScale) + center.x;
-                const ty = (targetPositions[idx+1] * targetScale) + center.y;
-                const tz = (targetPositions[idx+2] * targetScale) + center.z;
+                let tx = (targetPositions[idx] * targetScale) + shapeCenterOffset.x;
+                let ty = (targetPositions[idx+1] * targetScale) + shapeCenterOffset.y;
+                let tz = (targetPositions[idx+2] * targetScale) + shapeCenterOffset.z;
 
-                velocities[idx]   += (tx - px) * springStrength;
-                velocities[idx+1] += (ty - py) * springStrength;
-                velocities[idx+2] += (tz - pz) * springStrength;
+                // 1. 混沌/打散力 (Chaos Force)
+                // 当握拳时施加随机方向的力，模拟炸裂
+                if (chaosLevel > 0.1) {
+                    // 使用确定性随机数以保持噪点纹理，或者完全随机
+                    // 这里使用完全随机以获得爆发感
+                    velocities[idx]   += (Math.random() - 0.5) * chaosLevel;
+                    velocities[idx+1] += (Math.random() - 0.5) * chaosLevel;
+                    velocities[idx+2] += (Math.random() - 0.5) * chaosLevel;
+                }
 
+                // 2. 弹力归位 (Spring Force)
+                // 只有当手张开时，弹力才起作用将粒子拉回形状
+                if (springStrength > 0.001) {
+                    velocities[idx]   += (tx - px) * springStrength;
+                    velocities[idx+1] += (ty - py) * springStrength;
+                    velocities[idx+2] += (tz - pz) * springStrength;
+                }
+
+                // 3. 阻尼 (Friction)
                 velocities[idx]   *= friction;
                 velocities[idx+1] *= friction;
                 velocities[idx+2] *= friction;
-
-                if (state.handOpenness > 0.8) {
-                    velocities[idx] += (Math.random()-0.5) * 0.05;
-                    velocities[idx+1] += (Math.random()-0.5) * 0.05;
-                    velocities[idx+2] += (Math.random()-0.5) * 0.05;
-                }
 
                 posAttr.array[idx]   += velocities[idx];
                 posAttr.array[idx+1] += velocities[idx+1];
@@ -627,31 +652,33 @@
             }
 
             posAttr.needsUpdate = true;
+            
+            if (state.currentShape !== 'galaxy') {
+                particles.rotation.y += 0.002;
+            }
         }
 
         function drawSkeleton(ctx, landmarks) {
             const w = ctx.canvas.width;
             const h = ctx.canvas.height;
             
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 4;
             ctx.lineCap = 'round';
-            const fingers = [[0,1,2,3,4], [0,5,6,7,8], [5,9,10,11,12], [9,13,14,15,16], [13,17,18,19,20]];
+            const fingers = [[0,1,2,3,4],[0,5,6,7,8],[5,9,10,11,12],[9,13,14,15,16],[13,17,18,19,20]];
             
-            const color = state.handOpenness < 0.2 ? 'rgba(248, 113, 113, 0.6)' : 'rgba(52, 211, 153, 0.6)';
+            const color = state.isGripping ? 'rgba(255, 50, 50, 0.8)' : 'rgba(0, 255, 200, 0.8)';
             ctx.strokeStyle = color;
 
             fingers.forEach(chain => {
                 ctx.beginPath();
                 ctx.moveTo(landmarks[chain[0]].x * w, landmarks[chain[0]].y * h);
-                for(let i=1; i<chain.length; i++) {
-                    ctx.lineTo(landmarks[chain[i]].x * w, landmarks[chain[i]].y * h);
-                }
+                for(let i=1; i<chain.length; i++) ctx.lineTo(landmarks[chain[i]].x * w, landmarks[chain[i]].y * h);
                 ctx.stroke();
             });
 
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fillStyle = '#fff';
             landmarks.forEach(lm => { 
-                ctx.beginPath(); ctx.arc(lm.x * w, lm.y * h, 2, 0, Math.PI*2); ctx.fill(); 
+                ctx.beginPath(); ctx.arc(lm.x * w, lm.y * h, 3, 0, Math.PI*2); ctx.fill(); 
             });
         }
 
