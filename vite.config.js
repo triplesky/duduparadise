@@ -14,6 +14,8 @@ export default defineConfig({
         short_name: 'DUDU',
         description: 'DUDU Paradise',
         theme_color: '#ffffff',
+        start_url: ".",
+        display: "standalone",
         icons: [
           {
             src: 'logo.png',
