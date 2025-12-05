@@ -16,6 +16,15 @@ export default defineConfig({
         theme_color: '#ffffff',
         start_url: ".",
         display: "standalone",
+        screenshots: [
+          {
+            src: "mobile-1.jpg",
+            sizes: "1080x2280",
+            type: "image/jpg",
+            form_factor: "narrow",
+            label: "Mobile view of Dudu Paradise"
+          }
+        ],
         icons: [
           {
             src: 'logo-192.png',
