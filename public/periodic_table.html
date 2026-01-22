@@ -1045,19 +1045,26 @@
                         gestureStatus.textContent = '✊ 握拳 - 关闭';
                         gestureHint.classList.remove('show');
                     } else {
-                        // 手掌模式: 控制旋转
+                        // 手掌模式
                         fingerCursor.style.display = 'none';
                         clearHoveredElements();
 
-                        const deltaX = handState.palmX - handState.prevPalmX;
-                        const deltaY = handState.palmY - handState.prevPalmY;
-                        const rotationSpeed = 8;
-                        controls.targetRotationY -= deltaX * rotationSpeed;
-                        controls.targetRotationX += deltaY * rotationSpeed * 0.5;
+                        // 只有非 TABLE 布局才支持手势旋转
+                        if (currentTarget !== 'table') {
+                            const deltaX = handState.palmX - handState.prevPalmX;
+                            const deltaY = handState.palmY - handState.prevPalmY;
+                            const rotationSpeed = 8;
+                            controls.targetRotationY -= deltaX * rotationSpeed;
+                            controls.targetRotationX += deltaY * rotationSpeed * 0.5;
 
-                        statusDot.style.background = '#00ff88';
-                        statusDot.style.boxShadow = '0 0 10px #00ff88';
-                        gestureStatus.textContent = '✋ 手掌旋转模式';
+                            statusDot.style.background = '#00ff88';
+                            statusDot.style.boxShadow = '0 0 10px #00ff88';
+                            gestureStatus.textContent = '✋ 手掌旋转模式';
+                        } else {
+                            statusDot.style.background = '#888';
+                            statusDot.style.boxShadow = 'none';
+                            gestureStatus.textContent = '📊 表格模式 - 摇头切换';
+                        }
                         gestureHint.classList.remove('show');
                     }
 
