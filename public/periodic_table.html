@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>元素周期表 - 嘟嘟乐园</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'ZCOOL KuaiLe', Helvetica, sans-serif;
+            background: #000510;
+            overflow: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 星空背景 */
+        #starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: radial-gradient(ellipse at bottom, #1B2838 0%, #000510 100%);
+        }
+
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .stars-1 {
+            background-image:
+                radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+                radial-gradient(2px 2px at 40px 70px, #fff, transparent),
+                radial-gradient(1px 1px at 90px 40px, #ddd, transparent),
+                radial-gradient(2px 2px at 160px 120px, #fff, transparent),
+                radial-gradient(1px 1px at 230px 80px, #eee, transparent),
+                radial-gradient(2px 2px at 300px 150px, #fff, transparent),
+                radial-gradient(1px 1px at 380px 60px, #ddd, transparent),
+                radial-gradient(2px 2px at 450px 180px, #eee, transparent);
+            background-repeat: repeat;
+            background-size: 500px 300px;
+            animation: twinkle 4s ease-in-out infinite;
+        }
+
+        .stars-2 {
+            background-image:
+                radial-gradient(1px 1px at 50px 150px, #fff, transparent),
+                radial-gradient(1px 1px at 120px 200px, #eee, transparent),
+                radial-gradient(2px 2px at 200px 100px, #fff, transparent),
+                radial-gradient(1px 1px at 280px 250px, #ddd, transparent),
+                radial-gradient(2px 2px at 350px 50px, #eee, transparent),
+                radial-gradient(1px 1px at 420px 220px, #fff, transparent);
+            background-repeat: repeat;
+            background-size: 600px 350px;
+            animation: twinkle 5s ease-in-out infinite;
+            animation-delay: 1s;
+        }
+
+        .stars-3 {
+            background-image:
+                radial-gradient(1px 1px at 80px 80px, #fff, transparent),
+                radial-gradient(2px 2px at 180px 180px, #eee, transparent),
+                radial-gradient(1px 1px at 280px 30px, #ddd, transparent),
+                radial-gradient(1px 1px at 380px 280px, #fff, transparent),
+                radial-gradient(2px 2px at 480px 130px, #eee, transparent);
+            background-repeat: repeat;
+            background-size: 550px 320px;
+            animation: twinkle 6s ease-in-out infinite;
+            animation-delay: 2s;
+        }
+
+        @keyframes twinkle {
+
+            0%,
+            100% {
+                opacity: 0.7;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        #container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* 视频隐藏，用于分析 */
+        #videoElement {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+            transform: scaleX(-1);
+        }
+
+        /* 手部骨架画布 */
+        #overlayCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 100;
+            pointer-events: none;
+            transform: scaleX(-1);
+        }
+
+        /* 食指指示器 */
+        #finger-cursor {
+            position: fixed;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #00ffff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 150;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        #finger-cursor.clicking {
+            background: rgba(255, 215, 0, 0.5);
+            border-color: #ffd700;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+            transform: translate(-50%, -50%) scale(1.3);
+        }
+
+        /* 元素卡片样式 - CodePen风格 */
+        .element {
+            width: 120px;
+            height: 160px;
+            background: rgba(0, 127, 127, 0.25);
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.5);
+            border: 1px solid rgba(127, 255, 255, 0.25);
+            border-radius: 4px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            font-family: Helvetica, sans-serif;
+        }
+
+        .element:hover {
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.75);
+            border: 1px solid rgba(127, 255, 255, 0.75);
+        }
+
+        .element.hovered {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 1);
+            border: 2px solid rgba(0, 255, 255, 1);
+            background: rgba(0, 200, 200, 0.4);
+        }
+
+        .element.selected {
+            box-shadow: 0 0 25px rgba(255, 200, 0, 0.9);
+            border-color: rgba(255, 200, 0, 1);
+        }
+
+        .element .number {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 12px;
+            color: rgba(127, 255, 255, 0.75);
+        }
+
+        .element .symbol {
+            font-size: 60px;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.75);
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.95);
+            margin-bottom: 0;
+            line-height: 1;
+        }
+
+        .element .name-cn {
+            font-size: 18px;
+            color: #ffd700;
+            font-weight: bold;
+            margin-top: 5px;
+            font-family: 'ZCOOL KuaiLe', sans-serif;
+        }
+
+        .element .name-en {
+            font-size: 12px;
+            color: rgba(127, 255, 255, 0.75);
+        }
+
+        .element .mass {
+            font-size: 12px;
+            color: rgba(127, 255, 255, 0.75);
+            margin-top: 2px;
+        }
+
+        /* UI层 */
+        #ui-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 200;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px;
+        }
+
+        .pointer-events-auto {
+            pointer-events: auto;
+        }
+
+        /* 玻璃拟态面板 */
+        .glass-panel {
+            background: rgba(0, 30, 60, 0.7);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        /* 按钮样式 */
+        .mode-btn {
+            color: rgba(127, 255, 255, 0.75);
+            background: transparent;
+            border: 1px solid rgba(127, 255, 255, 0.75);
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: Helvetica, sans-serif;
+            text-transform: uppercase;
+        }
+
+        .mode-btn:hover {
+            background: rgba(0, 255, 255, 0.3);
+        }
+
+        .mode-btn:active {
+            color: #000;
+            background: rgba(0, 255, 255, 0.75);
+        }
+
+        .mode-btn.active {
+            color: #000;
+            background: rgba(0, 255, 255, 0.5);
+            border-color: #00ffff;
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        /* 加载动画 */
+        #loading {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at bottom, #1B2838 0%, #000510 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(0, 255, 255, 0.2);
+            border-top-color: #00ffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 状态指示器 */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #ffffff;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(0.8);
+            }
+        }
+
+        /* 元素详情弹窗 */
+        #element-popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: rgba(0, 40, 60, 0.95);
+            border: 2px solid rgba(0, 255, 255, 0.8);
+            border-radius: 12px;
+            padding: 30px 40px;
+            text-align: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 500;
+            min-width: 280px;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.4);
+        }
+
+        #element-popup.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #element-popup .popup-symbol {
+            font-size: 80px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+        }
+
+        #element-popup .popup-name-cn {
+            font-size: 36px;
+            color: #ffd700;
+            margin: 10px 0;
+        }
+
+        #element-popup .popup-name-en {
+            font-size: 18px;
+            color: rgba(127, 255, 255, 0.9);
+        }
+
+        #element-popup .popup-info {
+            margin-top: 15px;
+            font-size: 14px;
+            color: rgba(200, 200, 200, 0.8);
+        }
+
+        #element-popup .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        #element-popup .close-btn:hover {
+            color: #ff6b6b;
+        }
+
+        /* 手势提示 */
+        #gesture-hint {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 20px;
+            border-radius: 20px;
+            color: #00ffff;
+            font-size: 14px;
+            z-index: 300;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        #gesture-hint.show {
+            opacity: 1;
+        }
+    </style>
+
+    <!-- Import Maps for ES Modules -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+
+<body>
+
+    <!-- 星空背景 -->
+    <div id="starfield">
+        <div class="stars stars-1"></div>
+        <div class="stars stars-2"></div>
+        <div class="stars stars-3"></div>
+    </div>
+
+    <div id="container"></div>
+    <video id="videoElement" playsinline autoplay></video>
+    <canvas id="overlayCanvas"></canvas>
+
+    <!-- 食指指示器 -->
+    <div id="finger-cursor"></div>
+
+    <!-- UI 层 -->
+    <div id="ui-layer">
+        <!-- 顶部栏 -->
+        <div class="flex justify-between items-center w-full pointer-events-auto"
+            style="display: flex; justify-content: space-between; align-items: center;">
+            <a href="baike_nav.html" class="back-btn glass-panel">🏠</a>
+
+            <div style="text-align: center;">
+                <h1
+                    style="font-size: 24px; color: rgba(127, 255, 255, 0.9); text-shadow: 0 0 10px rgba(0,255,255,0.5);">
+                    ⚗️ 元素周期表 3D
+                </h1>
+            </div>
+
+            <div class="status-indicator glass-panel pointer-events-auto">
+                <span class="status-dot" id="statusDot" style="background: #888;"></span>
+                <span id="gestureStatus">初始化中...</span>
+            </div>
+        </div>
+
+        <!-- 加载遮罩 -->
+        <div id="loading">
+            <div class="loader"></div>
+            <div style="margin-top: 20px; color: #00ffff; font-size: 20px;">正在启动元素周期表...</div>
+            <div style="margin-top: 10px; color: #888; font-size: 14px;">请允许摄像头权限以使用手势控制</div>
+        </div>
+
+        <!-- 底部控制面板 -->
+        <div style="display: flex; justify-content: center; width: 100%;" class="pointer-events-auto">
+            <div class="glass-panel"
+                style="padding: 10px 16px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                <button id="btn-table" class="mode-btn active" onclick="transformTo('table')">Table</button>
+                <button id="btn-sphere" class="mode-btn" onclick="transformTo('sphere')">Sphere</button>
+                <button id="btn-helix" class="mode-btn" onclick="transformTo('helix')">Helix</button>
+                <button id="btn-grid" class="mode-btn" onclick="transformTo('grid')">Grid</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 手势提示 -->
+    <div id="gesture-hint">👆 指向张嘴选择 | ✊ 握拳关闭 | 🙃 摇头切换布局</div>
+
+    <!-- 元素详情弹窗 -->
+    <div id="element-popup">
+        <span class="close-btn" onclick="closePopup()">✕</span>
+        <div class="popup-symbol" id="popup-symbol">H</div>
+        <div class="popup-name-cn" id="popup-name-cn">氢</div>
+        <div class="popup-name-en" id="popup-name-en">Hydrogen</div>
+        <div class="popup-info" id="popup-info">原子序数: 1 | 原子质量: 1.008</div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import TWEEN from 'three/addons/libs/tween.module.js';
+        import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+        import { FilesetResolver, HandLandmarker, FaceLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/+esm";
+
+        // ========== 元素周期表数据 (符号, 英文名, 中文名, 原子质量, 列, 行) ==========
+        const table = [
+            'H', 'Hydrogen', '氢', '1.008', 1, 1,
+            'He', 'Helium', '氦', '4.003', 18, 1,
+            'Li', 'Lithium', '锂', '6.941', 1, 2,
+            'Be', 'Beryllium', '铍', '9.012', 2, 2,
+            'B', 'Boron', '硼', '10.81', 13, 2,
+            'C', 'Carbon', '碳', '12.01', 14, 2,
+            'N', 'Nitrogen', '氮', '14.01', 15, 2,
+            'O', 'Oxygen', '氧', '16.00', 16, 2,
+            'F', 'Fluorine', '氟', '19.00', 17, 2,
+            'Ne', 'Neon', '氖', '20.18', 18, 2,
+            'Na', 'Sodium', '钠', '22.99', 1, 3,
+            'Mg', 'Magnesium', '镁', '24.31', 2, 3,
+            'Al', 'Aluminium', '铝', '26.98', 13, 3,
+            'Si', 'Silicon', '硅', '28.09', 14, 3,
+            'P', 'Phosphorus', '磷', '30.97', 15, 3,
+            'S', 'Sulfur', '硫', '32.07', 16, 3,
+            'Cl', 'Chlorine', '氯', '35.45', 17, 3,
+            'Ar', 'Argon', '氩', '39.95', 18, 3,
+            'K', 'Potassium', '钾', '39.10', 1, 4,
+            'Ca', 'Calcium', '钙', '40.08', 2, 4,
+            'Sc', 'Scandium', '钪', '44.96', 3, 4,
+            'Ti', 'Titanium', '钛', '47.87', 4, 4,
+            'V', 'Vanadium', '钒', '50.94', 5, 4,
+            'Cr', 'Chromium', '铬', '52.00', 6, 4,
+            'Mn', 'Manganese', '锰', '54.94', 7, 4,
+            'Fe', 'Iron', '铁', '55.85', 8, 4,
+            'Co', 'Cobalt', '钴', '58.93', 9, 4,
+            'Ni', 'Nickel', '镍', '58.69', 10, 4,
+            'Cu', 'Copper', '铜', '63.55', 11, 4,
+            'Zn', 'Zinc', '锌', '65.38', 12, 4,
+            'Ga', 'Gallium', '镓', '69.72', 13, 4,
+            'Ge', 'Germanium', '锗', '72.63', 14, 4,
+            'As', 'Arsenic', '砷', '74.92', 15, 4,
+            'Se', 'Selenium', '硒', '78.97', 16, 4,
+            'Br', 'Bromine', '溴', '79.90', 17, 4,
+            'Kr', 'Krypton', '氪', '83.80', 18, 4,
+            'Rb', 'Rubidium', '铷', '85.47', 1, 5,
+            'Sr', 'Strontium', '锶', '87.62', 2, 5,
+            'Y', 'Yttrium', '钇', '88.91', 3, 5,
+            'Zr', 'Zirconium', '锆', '91.22', 4, 5,
+            'Nb', 'Niobium', '铌', '92.91', 5, 5,
+            'Mo', 'Molybdenum', '钼', '95.95', 6, 5,
+            'Tc', 'Technetium', '锝', '98', 7, 5,
+            'Ru', 'Ruthenium', '钌', '101.1', 8, 5,
+            'Rh', 'Rhodium', '铑', '102.9', 9, 5,
+            'Pd', 'Palladium', '钯', '106.4', 10, 5,
+            'Ag', 'Silver', '银', '107.9', 11, 5,
+            'Cd', 'Cadmium', '镉', '112.4', 12, 5,
+            'In', 'Indium', '铟', '114.8', 13, 5,
+            'Sn', 'Tin', '锡', '118.7', 14, 5,
+            'Sb', 'Antimony', '锑', '121.8', 15, 5,
+            'Te', 'Tellurium', '碲', '127.6', 16, 5,
+            'I', 'Iodine', '碘', '126.9', 17, 5,
+            'Xe', 'Xenon', '氙', '131.3', 18, 5,
+            'Cs', 'Cesium', '铯', '132.9', 1, 6,
+            'Ba', 'Barium', '钡', '137.3', 2, 6,
+            'La', 'Lanthanum', '镧', '138.9', 3, 6,
+            'Ce', 'Cerium', '铈', '140.1', 4, 6,
+            'Pr', 'Praseodymium', '镨', '140.9', 5, 6,
+            'Nd', 'Neodymium', '钕', '144.2', 6, 6,
+            'Pm', 'Promethium', '钷', '145', 7, 6,
+            'Sm', 'Samarium', '钐', '150.4', 8, 6,
+            'Eu', 'Europium', '铕', '152.0', 9, 6,
+            'Gd', 'Gadolinium', '钆', '157.3', 10, 6,
+            'Tb', 'Terbium', '铽', '158.9', 11, 6,
+            'Dy', 'Dysprosium', '镝', '162.5', 12, 6,
+            'Ho', 'Holmium', '钬', '164.9', 13, 6,
+            'Er', 'Erbium', '铒', '167.3', 14, 6,
+            'Tm', 'Thulium', '铥', '168.9', 15, 6,
+            'Yb', 'Ytterbium', '镱', '173.0', 16, 6,
+            'Lu', 'Lutetium', '镥', '175.0', 17, 6,
+            'Hf', 'Hafnium', '铪', '178.5', 18, 6,
+            'Ta', 'Tantalum', '钽', '180.9', 4, 7,
+            'W', 'Tungsten', '钨', '183.8', 5, 7,
+            'Re', 'Rhenium', '铼', '186.2', 6, 7,
+            'Os', 'Osmium', '锇', '190.2', 7, 7,
+            'Ir', 'Iridium', '铱', '192.2', 8, 7,
+            'Pt', 'Platinum', '铂', '195.1', 9, 7,
+            'Au', 'Gold', '金', '197.0', 10, 7,
+            'Hg', 'Mercury', '汞', '200.6', 11, 7,
+            'Tl', 'Thallium', '铊', '204.4', 12, 7,
+            'Pb', 'Lead', '铅', '207.2', 13, 7,
+            'Bi', 'Bismuth', '铋', '209.0', 14, 7,
+            'Po', 'Polonium', '钋', '209', 15, 7,
+            'At', 'Astatine', '砹', '210', 16, 7,
+            'Rn', 'Radon', '氡', '222', 17, 7,
+            'Fr', 'Francium', '钫', '223', 18, 7,
+            'Ra', 'Radium', '镭', '226', 1, 8,
+            'Ac', 'Actinium', '锕', '227', 2, 8,
+            'Th', 'Thorium', '钍', '232.0', 3, 8,
+            'Pa', 'Protactinium', '镤', '231.0', 4, 8,
+            'U', 'Uranium', '铀', '238.0', 5, 8,
+            'Np', 'Neptunium', '镎', '237', 6, 8,
+            'Pu', 'Plutonium', '钚', '244', 7, 8,
+            'Am', 'Americium', '镅', '243', 8, 8,
+            'Cm', 'Curium', '锔', '247', 9, 8,
+            'Bk', 'Berkelium', '锫', '247', 10, 8,
+            'Cf', 'Californium', '锎', '251', 11, 8,
+            'Es', 'Einsteinium', '锿', '252', 12, 8,
+            'Fm', 'Fermium', '镄', '257', 13, 8,
+            'Md', 'Mendelevium', '钔', '258', 14, 8,
+            'No', 'Nobelium', '锘', '259', 15, 8,
+            'Lr', 'Lawrencium', '铹', '266', 16, 8,
+            'Rf', 'Rutherfordium', '𬬻', '267', 17, 8,
+            'Db', 'Dubnium', '𬭊', '268', 18, 8,
+            'Sg', 'Seaborgium', '𬭳', '269', 4, 9,
+            'Bh', 'Bohrium', '𬭛', '270', 5, 9,
+            'Hs', 'Hassium', '𬭶', '277', 6, 9,
+            'Mt', 'Meitnerium', '鿏', '278', 7, 9,
+            'Ds', 'Darmstadtium', '𫟼', '281', 8, 9,
+            'Rg', 'Roentgenium', '𬬭', '282', 9, 9,
+            'Cn', 'Copernicium', '鿔', '285', 10, 9,
+            'Nh', 'Nihonium', '鿭', '286', 11, 9,
+            'Fl', 'Flerovium', '𫓧', '289', 12, 9,
+            'Mc', 'Moscovium', '镆', '290', 13, 9,
+            'Lv', 'Livermorium', '𫟷', '293', 14, 9,
+            'Ts', 'Tennessine', '石田', '294', 15, 9,
+            'Og', 'Oganesson', '奥气', '294', 16, 9
+        ];
+
+        // ========== 全局变量 ==========
+        let camera, scene, renderer;
+        let controls = {
+            rotationX: 0,
+            rotationY: 0,
+            targetRotationX: 0,
+            targetRotationY: 0,
+            zoom: 3000,
+            targetZoom: 3000
+        };
+        let objects = [];
+        let targets = { table: [], sphere: [], helix: [], grid: [] };
+        let currentTarget = 'table';
+
+        // MediaPipe
+        let handLandmarker = null;
+        let faceLandmarker = null;
+        let lastVideoTime = -1;
+        let lastFaceTime = -1;
+        let videoReady = false;
+        const video = document.getElementById('videoElement');
+        const overlayCanvas = document.getElementById('overlayCanvas');
+        const overlayCtx = overlayCanvas.getContext('2d');
+        const loadingScreen = document.getElementById('loading');
+        const gestureStatus = document.getElementById('gestureStatus');
+        const statusDot = document.getElementById('statusDot');
+        const gestureHint = document.getElementById('gesture-hint');
+        const fingerCursor = document.getElementById('finger-cursor');
+
+        // 手势状态
+        let handState = {
+            hasHand: false,
+            palmX: 0.5,
+            palmY: 0.5,
+            prevPalmX: 0.5,
+            prevPalmY: 0.5,
+            indexX: 0.5,
+            indexY: 0.5,
+            isPointing: false,  // 食指伸出状态
+            isFist: false,      // 握拳状态
+            wasFist: false,
+            hoveredElement: null,
+            lastClickTime: 0
+        };
+
+        // 面部状态
+        let faceState = {
+            hasFace: false,
+            mouthOpen: false,
+            wasMouthOpen: false,
+            headRotationY: 0,       // 头部左右旋转 (-1 到 1)
+            currentLayoutIndex: 0,  // 当前布局索引
+            lastLayoutChangeTime: 0
+        };
+
+        // 布局模式列表
+        const layoutModes = ['table', 'sphere', 'helix', 'grid'];
+
+        // ========== 初始化 ==========
+        init();
+        initMediaPipe();
+
+        function init() {
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 10000);
+            camera.position.z = controls.zoom;
+
+            scene = new THREE.Scene();
+
+            // 创建元素卡片
+            for (let i = 0; i < table.length; i += 6) {
+                const element = document.createElement('div');
+                element.className = 'element';
+                element.dataset.index = i / 6;
+                element.dataset.symbol = table[i];
+                element.dataset.nameCn = table[i + 2];
+                element.dataset.nameEn = table[i + 1];
+                element.dataset.mass = table[i + 3];
+
+                const number = document.createElement('div');
+                number.className = 'number';
+                number.textContent = (i / 6) + 1;
+                element.appendChild(number);
+
+                const symbol = document.createElement('div');
+                symbol.className = 'symbol';
+                symbol.textContent = table[i];
+                element.appendChild(symbol);
+
+                const nameCn = document.createElement('div');
+                nameCn.className = 'name-cn';
+                nameCn.textContent = table[i + 2];
+                element.appendChild(nameCn);
+
+                const nameEn = document.createElement('div');
+                nameEn.className = 'name-en';
+                nameEn.textContent = table[i + 1];
+                element.appendChild(nameEn);
+
+                const mass = document.createElement('div');
+                mass.className = 'mass';
+                mass.textContent = table[i + 3];
+                element.appendChild(mass);
+
+                // 点击事件
+                element.addEventListener('click', () => onElementClick(element));
+
+                const objectCSS = new CSS3DObject(element);
+                objectCSS.position.x = Math.random() * 4000 - 2000;
+                objectCSS.position.y = Math.random() * 4000 - 2000;
+                objectCSS.position.z = Math.random() * 4000 - 2000;
+                scene.add(objectCSS);
+
+                objects.push(objectCSS);
+
+                // Table 布局目标
+                const object = new THREE.Object3D();
+                object.position.x = (table[i + 4] * 140) - 1330;
+                object.position.y = -(table[i + 5] * 180) + 990;
+                targets.table.push(object);
+            }
+
+            // Sphere 布局
+            const vector = new THREE.Vector3();
+            for (let i = 0, l = objects.length; i < l; i++) {
+                const phi = Math.acos(-1 + (2 * i) / l);
+                const theta = Math.sqrt(l * Math.PI) * phi;
+
+                const object = new THREE.Object3D();
+                object.position.setFromSphericalCoords(800, phi, theta);
+                vector.copy(object.position).multiplyScalar(2);
+                object.lookAt(vector);
+
+                targets.sphere.push(object);
+            }
+
+            // Helix 布局
+            for (let i = 0, l = objects.length; i < l; i++) {
+                const theta = i * 0.175 + Math.PI;
+                const y = -(i * 8) + 450;
+
+                const object = new THREE.Object3D();
+                object.position.setFromCylindricalCoords(900, theta, y);
+
+                vector.x = object.position.x * 2;
+                vector.y = object.position.y;
+                vector.z = object.position.z * 2;
+                object.lookAt(vector);
+
+                targets.helix.push(object);
+            }
+
+            // Grid 布局
+            for (let i = 0; i < objects.length; i++) {
+                const object = new THREE.Object3D();
+                object.position.x = ((i % 5) * 400) - 800;
+                object.position.y = (-(Math.floor(i / 5) % 5) * 400) + 800;
+                object.position.z = (Math.floor(i / 25)) * 1000 - 2000;
+
+                targets.grid.push(object);
+            }
+
+            renderer = new CSS3DRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // 初始变换到表格布局 (快速动画 800ms)
+            transform(targets.table, 800);
+
+            window.addEventListener('resize', onWindowResize);
+
+            // 鼠标/触摸控制作为备选
+            setupMouseControls();
+
+            // 开始动画循环
+            animate();
+        }
+
+        function setupMouseControls() {
+            const container = renderer.domElement;
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+
+            container.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            container.addEventListener('mousemove', (e) => {
+                if (!isDragging || handState.hasHand) return;
+
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+
+                controls.targetRotationY += deltaX * 0.005;
+                controls.targetRotationX += deltaY * 0.005;
+
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            container.addEventListener('mouseup', () => isDragging = false);
+            container.addEventListener('mouseleave', () => isDragging = false);
+
+            container.addEventListener('wheel', (e) => {
+                if (handState.hasHand) return;
+                controls.targetZoom += e.deltaY * 2;
+                controls.targetZoom = Math.max(1000, Math.min(6000, controls.targetZoom));
+            });
+
+            // 触摸支持
+            let touchStart = null;
+            container.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            });
+
+            container.addEventListener('touchmove', (e) => {
+                if (!touchStart || handState.hasHand) return;
+
+                const deltaX = e.touches[0].clientX - touchStart.x;
+                const deltaY = e.touches[0].clientY - touchStart.y;
+
+                controls.targetRotationY += deltaX * 0.005;
+                controls.targetRotationX += deltaY * 0.005;
+
+                touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            });
+
+            container.addEventListener('touchend', () => touchStart = null);
+        }
+
+        // ========== MediaPipe 初始化 ==========
+        async function initMediaPipe() {
+            try {
+                const vision = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+                );
+
+                // 手部识别
+                handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+                        delegate: "GPU"
+                    },
+                    runningMode: "VIDEO",
+                    numHands: 1
+                });
+
+                // 面部识别 (用于张嘴检测)
+                faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+                        delegate: "GPU"
+                    },
+                    runningMode: "VIDEO",
+                    numFaces: 1,
+                    outputFaceBlendshapes: true
+                });
+
+                startCamera();
+            } catch (error) {
+                console.error("MediaPipe Init Error:", error);
+                gestureStatus.textContent = "手势初始化失败";
+                statusDot.style.background = "#ff4444";
+                hideLoading();
+            }
+        }
+
+        async function startCamera() {
+            try {
+                const constraints = { video: { facingMode: "user", width: 640, height: 480 } };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+
+                // 等待视频真正准备好
+                video.addEventListener("loadeddata", () => {
+                    // 确保视频有尺寸
+                    if (video.videoWidth > 0 && video.videoHeight > 0) {
+                        videoReady = true;
+                        hideLoading();
+                        gestureStatus.textContent = "手势就绪";
+                        statusDot.style.background = "#00ff88";
+                    }
+                });
+
+                // 备用检测
+                video.addEventListener("playing", () => {
+                    setTimeout(() => {
+                        if (video.videoWidth > 0 && video.videoHeight > 0) {
+                            videoReady = true;
+                            hideLoading();
+                        }
+                    }, 500);
+                });
+            } catch (error) {
+                console.error("Camera Error:", error);
+                gestureStatus.textContent = "摄像头访问失败";
+                statusDot.style.background = "#ff4444";
+                hideLoading();
+            }
+        }
+
+        function hideLoading() {
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => loadingScreen.style.display = 'none', 500);
+        }
+
+        // ========== 手势处理 ==========
+        function processHandGesture() {
+            // 确保视频已准备好且有有效尺寸
+            if (!handLandmarker || !videoReady) return;
+            if (video.videoWidth === 0 || video.videoHeight === 0) return;
+            if (video.currentTime === lastVideoTime) return;
+
+            lastVideoTime = video.currentTime;
+
+            try {
+                const result = handLandmarker.detectForVideo(video, performance.now());
+
+                overlayCanvas.width = window.innerWidth;
+                overlayCanvas.height = window.innerHeight;
+                overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+                if (result.landmarks && result.landmarks.length > 0) {
+                    handState.hasHand = true;
+                    const landmarks = result.landmarks[0];
+
+                    drawSkeleton(overlayCtx, landmarks);
+
+                    // 保存上一帧位置
+                    handState.prevPalmX = handState.palmX;
+                    handState.prevPalmY = handState.palmY;
+
+                    // 计算手掌中心
+                    const wrist = landmarks[0];
+                    const middleBase = landmarks[9];
+                    handState.palmX = (wrist.x + middleBase.x) / 2;
+                    handState.palmY = (wrist.y + middleBase.y) / 2;
+
+                    // 检测食指伸出 (pointing) - 食指伸直，其他手指弯曲
+                    const indexTip = landmarks[8];
+                    const indexPip = landmarks[6];
+                    const middleTip = landmarks[12];
+                    const middlePip = landmarks[10];
+                    const ringTip = landmarks[16];
+                    const ringPip = landmarks[14];
+                    const pinkyTip = landmarks[20];
+                    const pinkyPip = landmarks[18];
+
+                    const indexExtended = indexTip.y < indexPip.y - 0.02;
+                    const middleCurled = middleTip.y > middlePip.y;
+                    const ringCurled = ringTip.y > ringPip.y;
+                    const pinkyCurled = pinkyTip.y > pinkyPip.y;
+
+                    handState.isPointing = indexExtended && middleCurled && ringCurled && pinkyCurled;
+
+                    // 检测握拳
+                    handState.wasFist = handState.isFist;
+                    const thumbTip = landmarks[4];
+                    const allFingersCurled = !indexExtended && middleCurled && ringCurled && pinkyCurled;
+                    const thumbNearPalm = Math.hypot(thumbTip.x - middleBase.x, thumbTip.y - middleBase.y) < 0.15;
+                    handState.isFist = allFingersCurled && thumbNearPalm;
+
+                    // 握拳关闭弹窗
+                    if (handState.isFist && !handState.wasFist) {
+                        closePopup();
+                    }
+
+                    // 食指位置 (用于选择元素)
+                    handState.indexX = 1 - indexTip.x; // 镜像
+                    handState.indexY = indexTip.y;
+
+                    if (handState.isPointing) {
+                        // 指向模式: 只移动光标选择元素，不旋转表
+                        const cursorX = handState.indexX * window.innerWidth;
+                        const cursorY = handState.indexY * window.innerHeight;
+                        fingerCursor.style.left = cursorX + 'px';
+                        fingerCursor.style.top = cursorY + 'px';
+                        fingerCursor.style.display = 'block';
+
+                        // 查找食指悬停的元素
+                        findHoveredElement(cursorX, cursorY);
+
+                        // 更新状态显示
+                        if (handState.hoveredElement) {
+                            statusDot.style.background = '#00ffff';
+                            statusDot.style.boxShadow = '0 0 10px #00ffff';
+                            gestureStatus.textContent = '👆 ' + handState.hoveredElement.dataset.nameCn + ' - 张嘴选择';
+                            gestureHint.classList.add('show');
+                        } else {
+                            statusDot.style.background = '#00ff88';
+                            statusDot.style.boxShadow = '0 0 10px #00ff88';
+                            gestureStatus.textContent = '☝️ 指向选择模式';
+                            gestureHint.classList.remove('show');
+                        }
+                    } else if (handState.isFist) {
+                        // 握拳模式
+                        fingerCursor.style.display = 'none';
+                        clearHoveredElements();
+                        statusDot.style.background = '#ff6b6b';
+                        statusDot.style.boxShadow = '0 0 10px #ff6b6b';
+                        gestureStatus.textContent = '✊ 握拳 - 关闭';
+                        gestureHint.classList.remove('show');
+                    } else {
+                        // 手掌模式: 控制旋转
+                        fingerCursor.style.display = 'none';
+                        clearHoveredElements();
+
+                        const deltaX = handState.palmX - handState.prevPalmX;
+                        const deltaY = handState.palmY - handState.prevPalmY;
+                        const rotationSpeed = 8;
+                        controls.targetRotationY -= deltaX * rotationSpeed;
+                        controls.targetRotationX += deltaY * rotationSpeed * 0.5;
+
+                        statusDot.style.background = '#00ff88';
+                        statusDot.style.boxShadow = '0 0 10px #00ff88';
+                        gestureStatus.textContent = '✋ 手掌旋转模式';
+                        gestureHint.classList.remove('show');
+                    }
+
+                } else {
+                    handState.hasHand = false;
+                    handState.isPointing = false;
+                    handState.isFist = false;
+                    handState.hoveredElement = null;
+                    fingerCursor.style.display = 'none';
+                    clearHoveredElements();
+                    statusDot.style.background = '#888';
+                    statusDot.style.boxShadow = 'none';
+                    gestureStatus.textContent = '未检测到手势';
+                    gestureHint.classList.remove('show');
+                }
+            } catch (error) {
+                console.warn("Hand detection error:", error.message);
+            }
+        }
+
+        // ========== 面部处理 (张嘴检测) ==========
+        function processFaceGesture() {
+            if (!faceLandmarker || !videoReady) return;
+            if (video.videoWidth === 0 || video.videoHeight === 0) return;
+
+            try {
+                const result = faceLandmarker.detectForVideo(video, performance.now());
+
+                if (result.faceBlendshapes && result.faceBlendshapes.length > 0) {
+                    faceState.hasFace = true;
+                    const blendshapes = result.faceBlendshapes[0].categories;
+
+                    // 查找张嘴程度
+                    const jawOpen = blendshapes.find(b => b.categoryName === 'jawOpen');
+                    const mouthOpenScore = jawOpen ? jawOpen.score : 0;
+
+                    faceState.wasMouthOpen = faceState.mouthOpen;
+                    faceState.mouthOpen = mouthOpenScore > 0.3; // 阈值
+
+                    // 张嘴触发点击
+                    if (faceState.mouthOpen && !faceState.wasMouthOpen) {
+                        const now = Date.now();
+                        if (now - handState.lastClickTime > 500) {
+                            handState.lastClickTime = now;
+                            if (handState.hoveredElement && handState.isPointing) {
+                                fingerCursor.classList.add('clicking');
+                                setTimeout(() => fingerCursor.classList.remove('clicking'), 300);
+                                onElementClick(handState.hoveredElement);
+                            }
+                        }
+                    }
+
+                    // 头部左右旋转检测 (使用 headYaw blendshape 或面部landmark位置)
+                    // 使用 eyeLookOutLeft/Right 来估算头部旋转
+                    const headTurnLeft = blendshapes.find(b => b.categoryName === 'headTurnLeft');
+                    const headTurnRight = blendshapes.find(b => b.categoryName === 'headTurnRight');
+
+                    let headYaw = 0;
+                    if (headTurnLeft && headTurnRight) {
+                        headYaw = (headTurnRight.score - headTurnLeft.score);
+                    }
+                    faceState.headRotationY = headYaw;
+
+                    // 根据头部旋转切换布局模式
+                    const now = Date.now();
+                    const layoutChangeThreshold = 0.4; // 旋转阈值
+                    const layoutChangeCooldown = 800;  // 切换冷却时间
+
+                    if (now - faceState.lastLayoutChangeTime > layoutChangeCooldown) {
+                        if (headYaw > layoutChangeThreshold) {
+                            // 向右转 - 下一个布局
+                            faceState.currentLayoutIndex = (faceState.currentLayoutIndex + 1) % 4;
+                            transformTo(layoutModes[faceState.currentLayoutIndex]);
+                            faceState.lastLayoutChangeTime = now;
+                        } else if (headYaw < -layoutChangeThreshold) {
+                            // 向左转 - 上一个布局
+                            faceState.currentLayoutIndex = (faceState.currentLayoutIndex + 3) % 4;
+                            transformTo(layoutModes[faceState.currentLayoutIndex]);
+                            faceState.lastLayoutChangeTime = now;
+                        }
+                    }
+                } else {
+                    faceState.hasFace = false;
+                    faceState.mouthOpen = false;
+                }
+            } catch (error) {
+                // 忽略面部检测错误
+            }
+        }
+
+        function findHoveredElement(cursorX, cursorY) {
+            let closestElement = null;
+            let closestDist = 100; // 最大距离阈值
+
+            objects.forEach(obj => {
+                const screenPos = obj.position.clone().project(camera);
+                const screenX = (screenPos.x + 1) / 2 * window.innerWidth;
+                const screenY = (-screenPos.y + 1) / 2 * window.innerHeight;
+
+                const dist = Math.hypot(screenX - cursorX, screenY - cursorY);
+                if (dist < closestDist && screenPos.z < 1 && screenPos.z > -1) {
+                    closestDist = dist;
+                    closestElement = obj.element;
+                }
+            });
+
+            // 清除之前的高亮
+            if (handState.hoveredElement && handState.hoveredElement !== closestElement) {
+                handState.hoveredElement.classList.remove('hovered');
+            }
+
+            // 更新当前悬停元素
+            handState.hoveredElement = closestElement;
+            if (closestElement) {
+                closestElement.classList.add('hovered');
+            }
+        }
+
+        function clearHoveredElements() {
+            document.querySelectorAll('.element.hovered').forEach(el => el.classList.remove('hovered'));
+        }
+
+        function drawSkeleton(ctx, landmarks) {
+            const w = ctx.canvas.width;
+            const h = ctx.canvas.height;
+
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+
+            let color = 'rgba(0, 255, 200, 0.8)';
+            if (handState.isPointing) color = 'rgba(0, 255, 255, 0.9)';
+            else if (handState.isFist) color = 'rgba(255, 107, 107, 0.9)';
+            ctx.strokeStyle = color;
+
+            const fingers = [
+                [0, 1, 2, 3, 4],
+                [0, 5, 6, 7, 8],
+                [5, 9, 10, 11, 12],
+                [9, 13, 14, 15, 16],
+                [13, 17, 18, 19, 20]
+            ];
+
+            fingers.forEach(chain => {
+                ctx.beginPath();
+                ctx.moveTo(landmarks[chain[0]].x * w, landmarks[chain[0]].y * h);
+                for (let i = 1; i < chain.length; i++) {
+                    ctx.lineTo(landmarks[chain[i]].x * w, landmarks[chain[i]].y * h);
+                }
+                ctx.stroke();
+            });
+
+            // 连接手掌
+            ctx.beginPath();
+            ctx.moveTo(landmarks[0].x * w, landmarks[0].y * h);
+            ctx.lineTo(landmarks[5].x * w, landmarks[5].y * h);
+            ctx.lineTo(landmarks[9].x * w, landmarks[9].y * h);
+            ctx.lineTo(landmarks[13].x * w, landmarks[13].y * h);
+            ctx.lineTo(landmarks[17].x * w, landmarks[17].y * h);
+            ctx.lineTo(landmarks[0].x * w, landmarks[0].y * h);
+            ctx.stroke();
+
+            // 绘制关节点
+            ctx.fillStyle = '#ffffff';
+            landmarks.forEach(lm => {
+                ctx.beginPath();
+                ctx.arc(lm.x * w, lm.y * h, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 高亮食指尖
+            ctx.fillStyle = handState.isPointing ? '#00ffff' : '#ffffff';
+            ctx.beginPath();
+            ctx.arc(landmarks[8].x * w, landmarks[8].y * h, 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // ========== 元素点击处理 ==========
+        function onElementClick(element) {
+            const symbol = element.dataset.symbol;
+            const nameCn = element.dataset.nameCn;
+            const nameEn = element.dataset.nameEn;
+            const mass = element.dataset.mass;
+            const index = parseInt(element.dataset.index) + 1;
+
+            // 更新弹窗
+            document.getElementById('popup-symbol').textContent = symbol;
+            document.getElementById('popup-name-cn').textContent = nameCn;
+            document.getElementById('popup-name-en').textContent = nameEn;
+            document.getElementById('popup-info').textContent = `原子序数: ${index} | 原子质量: ${mass}`;
+
+            // 显示弹窗
+            document.getElementById('element-popup').classList.add('show');
+
+            // 高亮元素
+            document.querySelectorAll('.element').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+
+            // 朗读中文名称
+            speakChineseName(nameCn);
+        }
+
+        function speakChineseName(name) {
+            if ('speechSynthesis' in window) {
+                // 停止之前的语音
+                speechSynthesis.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(name);
+                utterance.lang = 'zh-CN';
+                utterance.rate = 0.8;
+                utterance.pitch = 1.1;
+                utterance.volume = 1;
+
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        window.closePopup = function () {
+            document.getElementById('element-popup').classList.remove('show');
+            document.querySelectorAll('.element').forEach(el => el.classList.remove('selected'));
+        };
+
+        // ========== 布局变换 (更快的动画) ==========
+        window.transformTo = function (targetName) {
+            currentTarget = targetName;
+
+            // 更新按钮状态
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('btn-' + targetName).classList.add('active');
+
+            // 快速动画 600ms (原来是 2000ms)
+            transform(targets[targetName], 600);
+        };
+
+        function transform(targetArray, duration) {
+            TWEEN.removeAll();
+
+            for (let i = 0; i < objects.length; i++) {
+                const object = objects[i];
+                const target = targetArray[i];
+
+                new TWEEN.Tween(object.position)
+                    .to({ x: target.position.x, y: target.position.y, z: target.position.z }, Math.random() * duration + duration)
+                    .easing(TWEEN.Easing.Exponential.InOut)
+                    .start();
+
+                new TWEEN.Tween(object.rotation)
+                    .to({ x: target.rotation.x, y: target.rotation.y, z: target.rotation.z }, Math.random() * duration + duration)
+                    .easing(TWEEN.Easing.Exponential.InOut)
+                    .start();
+            }
+        }
+
+        // ========== 窗口调整 ==========
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // ========== 动画循环 ==========
+        function animate() {
+            requestAnimationFrame(animate);
+
+            processHandGesture();
+            processFaceGesture();
+            TWEEN.update();
+
+            // 平滑过渡旋转
+            controls.rotationX += (controls.targetRotationX - controls.rotationX) * 0.08;
+            controls.rotationY += (controls.targetRotationY - controls.rotationY) * 0.08;
+
+            // 应用旋转到场景
+            scene.rotation.x = controls.rotationX;
+            scene.rotation.y = controls.rotationY;
+
+            // 更新相机距离
+            controls.zoom += (controls.targetZoom - controls.zoom) * 0.05;
+            camera.position.z = controls.zoom;
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+
+</html>
